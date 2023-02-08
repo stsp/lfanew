@@ -38,11 +38,6 @@ dnl they assume that `long long' is supported if the C compiler only
 dnl understands C89 (& C89 is the one C standard that does _not_ define a
 dnl `long long'!).  Patch these macros to remove this bug.
 dnl	-- tkchia 20220512
-dnl
-dnl Also set the default value for $exec_prefix here.  We cannot stuff a
-dnl --exec-prefix='${prefix}/ia16-elf' into the user-supplied command line
-dnl because this leads to some config.status here-document lossage.
-dnl	-- tkchia 20220614
 AC_DEFUN([_LFANEW_GCC_ACK_FIX],dnl
 [m4_define([_LFANEW_SAVE_AC_INIT_PARSE_ARGS],dnl
 m4_defn([_AC_INIT_PARSE_ARGS]))dnl
@@ -59,15 +54,6 @@ m4_define([_AC_INIT_PARSE_ARGS],dnl
     fi
     CXX=/bin/false ;;
  --x)])])dnl
-m4_define([_LFANEW_SAVE_AC_OUTPUT],m4_defn([AC_OUTPUT]))dnl
-m4_define([AC_OUTPUT],dnl
-[if test NONE = "[$]exec_prefix"; then
-  exec_prefix='[$]{prefix}/ia16-elf'
-fi
-if test '[$]{prefix}/include' = "$includedir"; then  # FIXME?
-  includedir='[$]{exec_prefix}/include'
-fi
-_LFANEW_SAVE_AC_OUTPUT])dnl
 m4_define([_LFANEW_SAVE_AC_COMPILER_EXEEXT_DEFAULT],dnl
 m4_defn([_AC_COMPILER_EXEEXT_DEFAULT]))dnl
 m4_define([_AC_COMPILER_EXEEXT_DEFAULT],dnl

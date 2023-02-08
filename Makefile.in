@@ -25,12 +25,15 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+DESTDIR =
 abs_srcdir = @abs_srcdir@
 srcdir = @srcdir@
 mkinstalldirs = $(SHELL) $(srcdir)/mkinstalldirs
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
+
+bindir = @bindir@
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -50,6 +53,11 @@ default: $(PROGRAMS)
 
 all: default
 .PHONY: all
+
+install: default
+	$(mkinstalldirs) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(PROGRAMS) $(DESTDIR)$(bindir)
+.PHONY: install
 
 clean mostlyclean:
 	$(RM) *.[oa] $(PROGRAMS) *~
