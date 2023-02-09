@@ -70,3 +70,6 @@ distclean maintainer-clean: clean
 lfanew$(EXEEXT): lfanew.$(OBJEXT)
 
 lfanew.$(OBJEXT): lfanew.c endian.h mz.h
+
+%$(EXEEXT): %.o
+	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) -o $@

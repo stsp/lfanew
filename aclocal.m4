@@ -25,36 +25,17 @@ dnl LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-dnl Patch autoconf so that it recognizes an --ack option, & also works with
-dnl the Amsterdam Compiler Kit's non-standard default output file names.
-dnl	-- tkchia 20211030
-dnl
-dnl Also force autoconf _not_ to look for a C++ compiler, lest it decides to
-dnl use the host g++.
+dnl Patch autoconf so that it works with the Amsterdam Compiler Kit's non-
+dnl -standard default output file names.
 dnl
 dnl And, apparently there is a rather bad bug in autoconf 2.71 in the macros
 dnl AC_TYPE_LONG_LONG_INT and AC_TYPE_UNSIGNED_LONG_LONG_INT: for some reason
 dnl they assume that `long long' is supported if the C compiler only
 dnl understands C89 (& C89 is the one C standard that does _not_ define a
 dnl `long long'!).  Patch these macros to remove this bug.
-dnl	-- tkchia 20220512
+dnl	-- tkchia 20230209
 AC_DEFUN([_LFANEW_GCC_ACK_FIX],dnl
-[m4_define([_LFANEW_SAVE_AC_INIT_PARSE_ARGS],dnl
-m4_defn([_AC_INIT_PARSE_ARGS]))dnl
-m4_define([_AC_INIT_PARSE_ARGS],dnl
-[m4_bpatsubst(m4_defn([_LFANEW_SAVE_AC_INIT_PARSE_ARGS]),dnl
-[--x)],dnl
-[-ack | --ack)
-    host_alias=ia16-pc-msdosack
-    if test NONE = "[$]exec_prefix"; then
-      exec_prefix='[$]{prefix}'/share/ack/'[$]{libi86_ackhost}'
-    fi
-    if test '[$]{exec_prefix}/lib' = "$libdir"; then  # FIXME?
-      libdir='[$]{exec_prefix}'
-    fi
-    CXX=/bin/false ;;
- --x)])])dnl
-m4_define([_LFANEW_SAVE_AC_COMPILER_EXEEXT_DEFAULT],dnl
+[m4_define([_LFANEW_SAVE_AC_COMPILER_EXEEXT_DEFAULT],dnl
 m4_defn([_AC_COMPILER_EXEEXT_DEFAULT]))dnl
 m4_define([_AC_COMPILER_EXEEXT_DEFAULT],dnl
 [m4_bpatsubst(m4_defn([_LFANEW_SAVE_AC_COMPILER_EXEEXT_DEFAULT]),dnl

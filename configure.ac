@@ -40,8 +40,29 @@ AC_CONFIG_SRCDIR([LICENSE])
 AC_DISABLE_OPTION_CHECKING
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
+lfanew_ackhost=
+case "$host_alias" in
+  i386-linuxack | i386-*-linuxack)
+    lfanew_ackhost=linux386 ;;
+  ia16-msdosack | ia16-*-msdosack)
+    lfanew_ackhost=msdos86 ;;
+  powerpc-linuxack | powerpc-*-linuxack)
+    lfanew_ackhost=linuxppc ;;
+esac
+if test -n "$lfanew_ackhost"; then
+  if test -z "$CC"; then
+    AC_CHECK_PROG(CC, ack-cc, ack-cc -m"$lfanew_ackhost" -.c, dnl
+			      ack -m"$lfanew_ackhost" -.c)
+    export CC
+  fi
+  if test -z "$CFLAGS"; then
+    CFLAGS='-O6 -S'
+    export CFLAGS
+  fi
+fi
 AC_PROG_INSTALL
 AC_PROG_CC
 
+AC_SUBST([lfanew_ackhost])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

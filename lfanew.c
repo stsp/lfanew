@@ -37,6 +37,12 @@
 #include <unistd.h>
 #include "mz.h"
 
+#ifdef __ACK
+extern int getopt (int, char * const[], const char *);
+extern char *optarg;
+extern int optind;
+#endif
+
 typedef unsigned ui_t;
 typedef unsigned long ul_t;
 

@@ -68,13 +68,11 @@ leh32 (uint_le32_t __x)
 typedef struct
   {
     uint8_t __octet[2];
-    uint16_t : 0;
   } uint_le16_t;
 
 typedef struct
   {
     uint8_t __octet[4];
-    uint32_t : 0;
   } uint_le32_t;
 
 static uint_le16_t
