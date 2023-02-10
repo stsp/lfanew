@@ -159,6 +159,15 @@ pad (FILE *out, size_t n)
 }
 
 static void
+skip (FILE *in, size_t n)
+{
+  char buf;
+  while (n-- != 0)
+    if (fread (&buf, 1, 1, in) != 1)
+      error_with_errno ("cannot skip input bytes");
+}
+
+static void
 lfanew (void)
 {
   ul_t tot_sz, aligned_tot_sz;
@@ -269,6 +278,7 @@ lfanew (void)
 
   copy (in, out, rels_sz, lfarlc, new_lfarlc);
   pad (out, new_hdr_end - new_rels_end);
+  skip (in, hdr_end - rels_end);
   copy (in, out, tot_sz - hdr_end, hdr_end, new_hdr_end);
   pad (out, aligned_tot_sz - tot_sz);
 
