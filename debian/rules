@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+%:
+	exec dh $@ --parallel --builddirectory=build
+
+override_dh_auto_build-arch:
+	dh_auto_build -a -O--parallel -O--builddirectory=build
+
+override_dh_auto_test:
+	# Unimplemented.

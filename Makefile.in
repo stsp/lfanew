@@ -28,6 +28,7 @@
 DESTDIR =
 abs_srcdir = @abs_srcdir@
 srcdir = @srcdir@
+VPATH = $(srcdir)
 mkinstalldirs = $(SHELL) $(srcdir)/mkinstalldirs
 
 prefix = @prefix@
