@@ -46,6 +46,14 @@ extern int optind;
 typedef unsigned ui_t;
 typedef unsigned long ul_t;
 
+typedef enum
+{
+  MODE_LFANEW,
+  MODE_UNSTUBIFY,
+  MODE_DEFAULT = MODE_LFANEW
+} op_mode_t;
+
+static op_mode_t op_mode = MODE_DEFAULT;
 static bool keep_output = false;
 static const char *me = NULL, *out_path = NULL, *in_path = NULL;
 static FILE *in = NULL, *out = NULL;
@@ -53,7 +61,10 @@ static FILE *in = NULL, *out = NULL;
 static void
 usage (void)
 {
-  fprintf (stderr, "usage: %s [-k] -o OUT-STUB-FILE IN-STUB-FILE\n", me);
+  fprintf (stderr,
+	   "usage:\n"
+	   "  %s [-k] -o OUT-STUB-FILE IN-STUB-FILE\n"
+	   "  %s [-k] -u -o OUT-PAYLOAD-FILE IN-FAT-FILE\n", me, me);
   exit (1);
 }
 
@@ -111,7 +122,7 @@ parse_args (int argc, char **argv)
 {
   int opt;
   char *ep;
-  while ((opt = getopt (argc, argv, "a:ko:")) != -1)
+  while ((opt = getopt (argc, argv, "a:ko:u")) != -1)
     {
       switch (opt)
 	{
@@ -120,6 +131,9 @@ parse_args (int argc, char **argv)
 	  break;
 	case 'o':
 	  out_path = optarg;
+	  break;
+	case 'u':
+	  op_mode = MODE_UNSTUBIFY;
 	  break;
 	default:
 	  usage ();
@@ -130,8 +144,90 @@ parse_args (int argc, char **argv)
   in_path = argv[optind];
 }
 
+static FILE *
+open_in (const char *path)
+{
+  FILE *in = fopen (path, "rb");
+  if (! in)
+    error_with_errno ("cannot open input file");
+  return in;
+}
+
+static FILE *
+open_out (const char *path)
+{
+  FILE *out = fopen (path, "wb");
+  if (! out)
+    error_with_errno ("cannot open output file");
+  return out;
+}
+
 static void
-copy (FILE *in, FILE *out, uint32_t sz, uint32_t in_off, uint32_t out_off)
+close_out (FILE *out)
+{
+  if (fclose (out) != 0)
+    error_with_errno ("cannot close output file");
+}
+
+static void
+process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
+		       uint32_t *p_mz_sz)
+{
+  ul_t tot_sz;
+  uint16_t lfarlc, cp, cblp, cparhdr;
+  uint32_t mz_sz, hdr_end;
+
+  if (fseek (in, 0L, SEEK_END) != 0)
+    error_with_errno ("cannot get size of input file");
+
+  tot_sz = (ul_t) (ftell (in) + 1);
+  if (! tot_sz)
+    error_with_errno ("cannot get size of input file");
+  --tot_sz;
+
+  memset (pmz, 0, sizeof (mz_hdr_t));
+
+  if (tot_sz < offsetof (mz_hdr_t, e_res)
+      || fseek (in, 0L, SEEK_SET) != 0)
+    error ("input is not MZ file");
+  if (fread (pmz, offsetof (mz_hdr_t, e_res), 1, in) != 1)
+    error_with_errno ("cannot read input file");
+  if (leh16 (pmz->e_magic) != MZ_MAGIC)
+    error ("input is not MZ file");
+
+  lfarlc = leh16 (pmz->e_lfarlc);
+  if (lfarlc < offsetof (mz_hdr_t, e_res))
+    error ("malformed MZ, e_lfarlc = %#x < %#x",
+	   (ui_t) lfarlc, (ui_t) offsetof (mz_hdr_t, e_res));
+
+  cp = leh16 (pmz->e_cp);
+  cblp = leh16 (pmz->e_cblp);
+  if (! cp)
+    error ("malformed MZ, e_cp = 0");
+  if (! cblp)
+    mz_sz = (long) cp * MZ_PG_SZ;
+  else
+    {
+      mz_sz = (long) (cp - 1) * MZ_PG_SZ + cblp;
+      if (cblp >= MZ_PG_SZ)
+	warn ("e_cblp == %#x > %#x looks bogus", (ui_t) cblp, (ui_t) MZ_PG_SZ);
+    }
+
+  cparhdr = leh16 (pmz->e_cparhdr);
+  hdr_end = cparhdr * (uint32_t) MZ_PARA_SZ;
+  if (hdr_end > mz_sz)
+    error ("MZ header overshoots MZ end, %#lx > %#lx",
+	   (ul_t) hdr_end, (ul_t) mz_sz);
+  if (hdr_end > tot_sz)
+    error ("MZ header overshoots file end, %#lx > %#lx",
+	   (ul_t) hdr_end, tot_sz);
+
+  *p_tot_sz = tot_sz;
+  *p_mz_sz = mz_sz;
+}
+
+static void
+copy (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 {
   char buf[BUFSIZ];
   while (sz)
@@ -172,67 +268,25 @@ lfanew (void)
 {
   ul_t tot_sz, aligned_tot_sz;
   mz_hdr_t mz;
-  uint16_t lfarlc, oem, new_lfarlc, cparhdr, crlc, cp, cblp;
+  uint16_t lfarlc, oem, cparhdr, crlc;
   uint32_t mz_sz, new_mz_sz, new_tot_sz, rels_sz, rels_end, hdr_end,
 	   new_rels_end, new_hdr_end;
 
-  in = fopen (in_path, "rb");
-  if (! in)
-    error_with_errno ("cannot open input file");
-
-  if (fseek (in, 0L, SEEK_END) != 0)
-    error_with_errno ("cannot get size of input file");
-
-  tot_sz = (ul_t) (ftell (in) + 1);
-  if (! tot_sz)
-    error_with_errno ("cannot get size of input file");
-  --tot_sz;
+  in = open_in (in_path);
+  process_mz_hdr_common (in, &mz, &tot_sz, &mz_sz);
 
   if (tot_sz > (ul_t) UINT32_MAX - MZ_PARA_SZ + 1)
     error ("input file too large, %#lx > 4 GiB - %#x",
 	   tot_sz, (ui_t) MZ_PARA_SZ);
   aligned_tot_sz = (tot_sz + MZ_PARA_SZ - 1) & -(ul_t) MZ_PARA_SZ;
 
-  memset (&mz, 0, sizeof mz);
-
-  if (tot_sz < offsetof (mz_hdr_t, e_res)
-      || fseek (in, 0L, SEEK_SET) != 0)
-    error ("input is not MZ file");
-  if (fread (&mz, offsetof (mz_hdr_t, e_res), 1, in) != 1)
-    error_with_errno ("cannot read input file");
-  if (leh16 (mz.e_magic) != MZ_MAGIC)
-    error ("input is not MZ file");
-
   lfarlc = leh16 (mz.e_lfarlc);
-  new_lfarlc = sizeof mz;
-  if (lfarlc < offsetof (mz_hdr_t, e_res))
-    error ("malformed MZ, e_lfarlc = %#x < %#x",
-	   (ui_t) lfarlc, (ui_t) offsetof (mz_hdr_t, e_res));
-  if (lfarlc >= new_lfarlc)
+  if (lfarlc >= MZ_LFARLC_NEW - sizeof (uint32_t))
     error ("cannot rewrite MZ, e_lfarlc = %#x >= %#x",
-	   (ui_t) lfarlc, (ui_t) new_lfarlc);
-
-  cp = leh16 (mz.e_cp);
-  cblp = leh16 (mz.e_cblp);
-  if (! cblp)
-    mz_sz = (long) cp * MZ_PG_SZ;
-  else if (! cp)
-    error ("malformed MZ, e_cp = 0 but e_cblp = %#x > 0", (ui_t) cblp);
-  else
-    {
-      mz_sz = (long) (cp - 1) * MZ_PG_SZ + cblp;
-      if (cblp >= MZ_PG_SZ)
-	warn ("e_cblp == %#x > %#x looks bogus", (ui_t) cblp, (ui_t) MZ_PG_SZ);
-    }
+	   (ui_t) lfarlc, (ui_t) (MZ_LFARLC_NEW - sizeof (uint32_t)));
 
   cparhdr = leh16 (mz.e_cparhdr);
   hdr_end = cparhdr * (uint32_t) MZ_PARA_SZ;
-  if (hdr_end > mz_sz)
-    error ("MZ header overshoots MZ end, %#lx > %#lx",
-	   (ul_t) hdr_end, (ul_t) mz_sz);
-  if (hdr_end > tot_sz)
-    error ("MZ header overshoots file end, %#lx > %#lx",
-	   (ul_t) hdr_end, tot_sz);
 
   crlc = leh16 (mz.e_crlc);
   rels_sz = (uint32_t) crlc * MZ_RELOC_SZ;
@@ -242,10 +296,10 @@ lfanew (void)
 	   (ui_t) lfarlc, (ul_t) (rels_end - lfarlc), (ul_t) hdr_end);
 
   oem = lfarlc - offsetof (mz_hdr_t, e_res);
-  if (oem != 0 && fread (&mz.e_res, oem, 1, in) != 1)
+  if (oem != 0 && fread (mz.e_res, oem, 1, in) != 1)
     error ("cannot read optional header information");
 
-  new_rels_end = new_lfarlc + (uint32_t) crlc * MZ_RELOC_SZ;
+  new_rels_end = MZ_LFARLC_NEW + (uint32_t) crlc * MZ_RELOC_SZ;
   new_hdr_end = (new_rels_end + MZ_PARA_SZ - 1) & -(uint32_t) MZ_PARA_SZ;
   new_mz_sz = mz_sz - hdr_end + new_hdr_end;
   if (mz_sz == tot_sz)
@@ -266,25 +320,97 @@ lfanew (void)
   mz.e_cblp = hle16 (new_mz_sz % MZ_PG_SZ);
   mz.e_cp = hle16 ((new_mz_sz + MZ_PG_SZ - 1) / MZ_PG_SZ);
   mz.e_cparhdr = hle16 (new_hdr_end / MZ_PARA_SZ);
-  mz.e_lfarlc = hle16 (new_lfarlc);
+  mz.e_lfarlc = hle16 (MZ_LFARLC_NEW);
   mz.e_lfanew = hle32 (new_tot_sz);
 
-  out = fopen (out_path, "wb");
-  if (! out)
-    error_with_errno ("cannot open output file");
-
+  out = open_out (out_path);
   if (fwrite (&mz, sizeof mz, 1, out) != 1)
     error_with_errno ("cannot write output file");
 
-  copy (in, out, rels_sz, lfarlc, new_lfarlc);
+  copy (in, out, rels_sz, lfarlc, MZ_LFARLC_NEW);
   pad (out, new_hdr_end - new_rels_end);
   skip (in, hdr_end - rels_end);
   copy (in, out, tot_sz - hdr_end, hdr_end, new_hdr_end);
   pad (out, aligned_tot_sz - tot_sz);
 
-  if (fclose (out) != 0)
-    error_with_errno ("cannot close output file");
+  close_out (out);
   fclose (in);
+}
+
+static void
+unstubify (void)
+{
+  ul_t tot_sz;
+  mz_hdr_t mz;
+  uint16_t lfarlc, oem, ne_magic;
+  uint32_t mz_sz, stub_sz, lfanew;
+  uint_le16_t ne_magic_le;
+  size_t magic_len = sizeof (ne_magic_le);
+
+  in = open_in (in_path);
+  process_mz_hdr_common (in, &mz, &tot_sz, &mz_sz);
+
+  lfarlc = leh16 (mz.e_lfarlc);
+  stub_sz = mz_sz;
+  if (lfarlc == MZ_LFARLC_NEW)
+    {
+      oem = lfarlc - offsetof (mz_hdr_t, e_res);
+      if (oem != 0 && fread (&mz.e_res, oem, 1, in) == 1)
+	{
+	  lfanew = leh32 (mz.e_lfanew);
+	  if (lfanew != 0 && lfanew <= tot_sz)
+	    stub_sz = lfanew;
+	}
+    }
+
+  if (stub_sz >= tot_sz)
+    error ("no non-stub content to unstubify");
+  else if (tot_sz - stub_sz < 2)
+    error ("too little non-stub content to unstubify?");
+
+  if (fseek (in, stub_sz, SEEK_SET) != 0)
+    error ("cannot seek to end of stub");
+
+  if (fread (&ne_magic_le, 1, magic_len, in) != magic_len)
+    error ("cannot read payload magic number");
+  ne_magic = leh16 (ne_magic_le);
+  switch (ne_magic)
+    {
+    default:
+      break;
+    case 0x454c:  /* "LE" */
+    case 0x584c:  /* "LX" */
+      /*
+       * The "LE" & "LX" file format structures contain file offsets that
+       * are relative to the beginning of the entire input file.  To truly
+       * unstubify these file formats, we will have to adjust these offsets
+       * correctly.
+       */
+      error ("I do not know how to unstubify an LE or LX program");
+    }
+
+  out = open_out (out_path);
+  if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
+    error ("cannot write payload magic number");
+  copy (in, out, tot_sz - stub_sz - magic_len,
+	stub_sz + magic_len, (uint32_t) 0);
+
+  close_out (out);
+  fclose (in);
+}
+
+static void
+process (void)
+{
+  switch (op_mode)
+    {
+    case MODE_LFANEW:
+      lfanew ();
+      break;
+
+    case MODE_UNSTUBIFY:
+      unstubify ();
+    }
 }
 
 static const char *
@@ -303,6 +429,6 @@ main (int argc, char **argv)
 {
   me = basenm (argv[0]);
   parse_args (argc, argv);
-  lfanew ();
+  process ();
   return 0;
 }

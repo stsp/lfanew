@@ -57,4 +57,6 @@ typedef struct
 #define MZ_PARA_SZ	0x10U
 #define MZ_RELOC_SZ	4U
 
+#define MZ_LFARLC_NEW	(sizeof (mz_hdr_t))
+
 #endif
