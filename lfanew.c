@@ -122,7 +122,7 @@ parse_args (int argc, char **argv)
 {
   int opt;
   char *ep;
-  while ((opt = getopt (argc, argv, "a:ko:u")) != -1)
+  while ((opt = getopt (argc, argv, "a:ko:U")) != -1)
     {
       switch (opt)
 	{
@@ -132,7 +132,7 @@ parse_args (int argc, char **argv)
 	case 'o':
 	  out_path = optarg;
 	  break;
-	case 'u':
+	case 'U':
 	  op_mode = MODE_UNSTUBIFY;
 	  break;
 	default:

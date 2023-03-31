@@ -1,3 +1,9 @@
+lfanew (20230331-build20230331-1~@distro@) @distro@; urgency=medium
+
+  * Rename `-u` (unstubify) to `-U`.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 31 Mar 2023 10:03:48 +0000
+
 lfanew (20230330-build20230330-1~@distro@) @distro@; urgency=medium
 
   * Add a `-u` (unstubify) option.
