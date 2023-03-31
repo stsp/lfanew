@@ -1,8 +1,9 @@
-lfanew (20230331-build20230331-1~@distro@) @distro@; urgency=medium
+lfanew (20230331-build20230331-2~@distro@) @distro@; urgency=medium
 
   * Rename `-u` (unstubify) to `-U`.
+  * Slightly improve documentation.
 
- -- TK Chia <tkchia@users.noreply.github.com>  Fri, 31 Mar 2023 10:03:48 +0000
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 31 Mar 2023 19:38:44 +0000
 
 lfanew (20230330-build20230330-1~@distro@) @distro@; urgency=medium
 

@@ -12,4 +12,7 @@
 
 :fn-pietrek-19: footnote:pietrek-19[M. Pietrek.  Inside Windows: an in-depth look into the Win32 Portable Executable file format.  MSDN Magazine, Feb 2002.  https://learn.microsoft.com/en-us/archive/msdn-magazine/2002/february/inside-windows-win32-portable-executable-file-format-in-detail.]
 
-Simplistic program to add a `.e_lfanew` header field{fn-pietrek-19} to an old-style MS-DOS `MZ` executable program, so that the program can potentially be used as an MS-DOS loader stub for a modern "new executable" format.
+This is a simple tool to manipulate fat binary programs wrapped inside MS-DOS `MZ` files.
+
+* On default, `lfanew` adds a `.e_lfanew` header field{fn-pietrek-19} to an old-style `MZ` executable program, so that the program can potentially be used as an MS-DOS loader stub for a modern "new executable" format.
+* With a `-U` ("unstubify") switch, `lfanew` extracts the "new executable" payload contained inside a fat binary.

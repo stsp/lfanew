@@ -63,8 +63,9 @@ usage (void)
 {
   fprintf (stderr,
 	   "usage:\n"
-	   "  %s [-k] -o OUT-STUB-FILE IN-STUB-FILE\n"
-	   "  %s [-k] -u -o OUT-PAYLOAD-FILE IN-FAT-FILE\n", me, me);
+	   "  %s [-k] -o OUT-STUB-FILE IN-STUB-FILE       # add .e_lfanew\n"
+	   "  %s [-k] -U -o OUT-PAYLOAD-FILE IN-FAT-FILE  # unstubify\n",
+	   me, me);
   exit (1);
 }
 
