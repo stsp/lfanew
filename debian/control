@@ -9,4 +9,4 @@ Homepage: https://gitlab.com/tkchia/lfanew
 Package: lfanew
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Add a .e_lfanew header field to an MS-DOS MZ executable program.
+Description: Tool to manipulate fat binary programs wrapped in MS-DOS MZ files.
