@@ -1,8 +1,9 @@
-lfanew (20230405-build20230405-1~@distro@) @distro@; urgency=medium
+lfanew (20230405-build20230406-1~@distro@) @distro@; urgency=medium
 
   * Update Debian package description.
+  * Regenerate ./configure script.
 
- -- TK Chia <tkchia@users.noreply.github.com>  Wed, 05 Apr 2023 14:19:23 +0000
+ -- TK Chia <tkchia@users.noreply.github.com>  Thu, 06 Apr 2023 14:33:32 +0000
 
 lfanew (20230331-build20230331-2~@distro@) @distro@; urgency=medium
 
