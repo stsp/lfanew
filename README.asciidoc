@@ -45,6 +45,7 @@ Options:
 
 | ``uint_le16_t`` | Unaligned 16-bit little endian binary numeral.  This type can be used directly inside a ``struct`` corresponding to a binary file structure, but should otherwise be treated as opaque.
 | ``uint_le32_t`` | Unaligned 32-bit little endian binary numeral.  This type can be used directly inside a ``struct`` corresponding to a binary file structure, but should otherwise be treated as opaque.
+| ``uint_le64_t`` | Unaligned 64-bit little endian binary numeral.  This type can be used directly inside a ``struct`` corresponding to a binary file structure, but should otherwise be treated as opaque.
 2+|
 | | **``▗▚▚▚▚ <nexgen/mzhdr.h> ▞▞▞▞▖``**
 | ``mz_hdr_t`` | ``MZ`` structure{fn-pietrek-19} at the beginning of an MS-DOS or Windows program.
@@ -57,8 +58,10 @@ Options:
 <| Function <| Notes
 
 | | **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
-| ``uint_le16_t hle16 (uint16_t`` __x__``);`` .2+| Converts __x__ from host byte order to little endian.
+| ``uint_le16_t hle16 (uint16_t`` __x__``);`` .3+| Converts __x__ from host byte order to little endian.
 | ``uint_le32_t hle32 (uint32_t`` __x__``);``
-| ``uint16_t leh16 (uint_le16_t`` __x__``);`` .2+| Converts __x__ from little endian to host byte order.
+| ``uint_le64_t hle64 (uint64_t`` __x__``);``
+| ``uint16_t leh16 (uint_le16_t`` __x__``);`` .3+| Converts __x__ from little endian to host byte order.
 | ``uint32_t leh32 (uint_le32_t`` __x__``);``
+| ``uint64_t leh64 (uint_le64_t`` __x__``);``
 |===

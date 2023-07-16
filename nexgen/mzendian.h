@@ -42,17 +42,28 @@ typedef struct
     uint8_t __octet[4];
   } uint_le32_t;
 
+typedef struct
+  {
+    uint8_t __octet[8];
+  } uint_le64_t;
+
 typedef union
   {
-    uint_le16_t __xle;
-    uint16_t __xh;
+    uint_le16_t __xo;
+    uint16_t __xi;
   } uint_aligned_le16_t;
 
 typedef union
   {
-    uint_le32_t __xle;
-    uint32_t __xh;
+    uint_le32_t __xo;
+    uint32_t __xi;
   } uint_aligned_le32_t;
+
+typedef union
+  {
+    uint_le64_t __xo;
+    uint64_t __xi;
+  } uint_aligned_le64_t;
 
 #if (defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
      && __BYTE_ORDER - 0 == __ORDER_LITTLE_ENDIAN__ - 0) \
@@ -62,32 +73,48 @@ static uint_le16_t
 hle16 (uint16_t __x)
 {
   uint_aligned_le16_t __u;
-  __u.__xh = __x;
-  return __u.__xle;
+  __u.__xi = __x;
+  return __u.__xo;
 }
 
 static uint_le32_t
 hle32 (uint32_t __x)
 {
   uint_aligned_le32_t __u;
-  __u.__xh = __x;
-  return __u.__xle;
+  __u.__xi = __x;
+  return __u.__xo;
+}
+
+static uint_le64_t
+hle64 (uint64_t __x)
+{
+  uint_aligned_le64_t __u;
+  __u.__xi = __x;
+  return __u.__xo;
 }
 
 static uint16_t
 leh16 (uint_le16_t __x)
 {
   uint_aligned_le16_t __u;
-  __u.__xle = __x;
-  return __u.__xh;
+  __u.__xo = __x;
+  return __u.__xi;
 }
 
 static uint32_t
 leh32 (uint_le32_t __x)
 {
   uint_aligned_le32_t __u;
-  __u.__xle = __x;
-  return __u.__xh;
+  __u.__xo = __x;
+  return __u.__xi;
+}
+
+static uint64_t
+leh64 (uint_le64_t __x)
+{
+  uint_aligned_le64_t __u;
+  __u.__xo = __x;
+  return __u.__xi;
 }
 
 #else  /* not known to be little endian */
@@ -112,6 +139,21 @@ hle32 (uint32_t __x)
   return __xle;
 }
 
+static uint_le64_t
+hle64 (uint64_t __x)
+{
+  uint_le64_t __xle;
+  __xle.__octet[0] = (uint8_t)  __x;
+  __xle.__octet[1] = (uint8_t) (__x >>  8);
+  __xle.__octet[2] = (uint8_t) (__x >> 16);
+  __xle.__octet[3] = (uint8_t) (__x >> 24);
+  __xle.__octet[4] = (uint8_t) (__x >> 32);
+  __xle.__octet[5] = (uint8_t) (__x >> 40);
+  __xle.__octet[6] = (uint8_t) (__x >> 48);
+  __xle.__octet[7] = (uint8_t) (__x >> 56);
+  return __xle;
+}
+
 static uint16_t
 leh16 (uint_le16_t __x)
 {
@@ -125,6 +167,19 @@ leh32 (uint_le32_t __x)
   return   (uint32_t) __x.__octet[3] << 24
 	 | (uint32_t) __x.__octet[2] << 16
 	 | (uint32_t) __x.__octet[1] <<  8
+	 |	      __x.__octet[0];
+}
+
+static uint64_t
+leh64 (uint_le64_t __x)
+{
+  return   (uint64_t) __x.__octet[7] << 56
+	 | (uint64_t) __x.__octet[6] << 48
+	 | (uint64_t) __x.__octet[5] << 40
+	 | (uint64_t) __x.__octet[4] << 32
+	 | (uint64_t) __x.__octet[3] << 24
+	 | (uint64_t) __x.__octet[2] << 16
+	 | (uint64_t) __x.__octet[1] <<  8
 	 |	      __x.__octet[0];
 }
 
