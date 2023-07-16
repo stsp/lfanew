@@ -35,29 +35,40 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 
 bindir = @bindir@
+includedir = @includedir@
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 
 CC = @CC@
-CPPFLAGS = @CPPFLAGS@
+CPPFLAGS = @CPPFLAGS@ -I$(srcdir)
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 
 PROGRAMS = lfanew$(EXEEXT)
+HEADERS = nexgen/mzendian.h nexgen/mzhdr.h
 
-default: $(PROGRAMS)
+default: $(PROGRAMS) $(HEADERS)
 .PHONY: default
 
 all: default
 .PHONY: all
 
-install: default
-	$(mkinstalldirs) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) $(PROGRAMS) $(DESTDIR)$(bindir)
+install: $(PROGRAMS) $(HEADERS)
+	$(mkinstalldirs) $(DESTDIR)$(bindir) \
+			 $(sort $(dir $(HEADERS:%=$(DESTDIR)$(includedir)/%)))
+	$(INSTALL_PROGRAM) $(filter-out %.h,$^) $(DESTDIR)$(bindir)
+	set -e; \
+	for h in $(HEADERS); do \
+	  if test -f "$$h"; then \
+	    $(INSTALL_DATA) "$$h" $(DESTDIR)$(includedir)/"$$h"; \
+	  else \
+	    $(INSTALL_DATA) $(srcdir)/"$$h" $(DESTDIR)$(includedir)/"$$h"; \
+	  fi; \
+	done
 .PHONY: install
 
 clean mostlyclean:
@@ -70,7 +81,7 @@ distclean maintainer-clean: clean
 
 lfanew$(EXEEXT): lfanew.$(OBJEXT)
 
-lfanew.$(OBJEXT): lfanew.c endian.h mz.h
+lfanew.$(OBJEXT): lfanew.c $(HEADERS)
 
 %$(EXEEXT): %.o
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) -o $@

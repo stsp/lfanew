@@ -27,90 +27,36 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef H_ENDIAN
-#define H_ENDIAN
+#ifndef _NEXGEN_MZHDR_H
+#define _NEXGEN_MZHDR_H
 
-#include <stdint.h>
-
-#if (defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
-     && __BYTE_ORDER - 0 == __ORDER_LITTLE_ENDIAN__ - 0) \
-    || defined __i386__ || defined __i386 || defined __i86__ || defined __i86
-
-typedef uint16_t uint_le16_t;
-typedef uint32_t uint_le32_t;
-
-static uint_le16_t
-hle16 (uint16_t __x)
-{
-  return __x;
-}
-
-static uint_le32_t
-hle32 (uint32_t __x)
-{
-  return __x;
-}
-
-static uint16_t
-leh16 (uint_le16_t __x)
-{
-  return __x;
-}
-
-static uint32_t
-leh32 (uint_le32_t __x)
-{
-  return __x;
-}
-
-#else  /* not known to be little endian */
+#include <nexgen/mzendian.h>
 
 typedef struct
   {
-    uint8_t __octet[2];
-  } uint_le16_t;
+    uint_le16_t e_magic;
+    uint_le16_t e_cblp;
+    uint_le16_t e_cp;
+    uint_le16_t e_crlc;
+    uint_le16_t e_cparhdr;
+    uint_le16_t e_minalloc;
+    uint_le16_t e_maxalloc;
+    uint_le16_t e_ss;
+    uint_le16_t e_sp;
+    uint_le16_t e_csum;
+    uint_le16_t e_ip;
+    uint_le16_t e_cs;
+    uint_le16_t e_lfarlc;
+    uint_le16_t e_ovno;
+    uint_le16_t e_res[16];
+    uint_le32_t e_lfanew;
+  } mz_hdr_t;
 
-typedef struct
-  {
-    uint8_t __octet[4];
-  } uint_le32_t;
+#define MZ_MAGIC	0x5a4dU
+#define MZ_PG_SZ	0x200U
+#define MZ_PARA_SZ	0x10U
+#define MZ_RELOC_SZ	4U
 
-static uint_le16_t
-hle16 (uint16_t __x)
-{
-  uint_le16_t __xle;
-  __xle.__octet[0] = (uint8_t)  __x;
-  __xle.__octet[1] = (uint8_t) (__x >> 8);
-  return __xle;
-}
+#define MZ_LFARLC_NEW	(sizeof (mz_hdr_t))
 
-static uint_le32_t
-hle32 (uint32_t __x)
-{
-  uint_le32_t __xle;
-  __xle.__octet[0] = (uint8_t)  __x;
-  __xle.__octet[1] = (uint8_t) (__x >>  8);
-  __xle.__octet[2] = (uint8_t) (__x >> 16);
-  __xle.__octet[3] = (uint8_t) (__x >> 24);
-  return __xle;
-}
-
-static uint16_t
-leh16 (uint_le16_t __x)
-{
-  return (uint16_t) __x.__octet[1] << 8
-		  | __x.__octet[0];
-}
-
-static uint32_t
-leh32 (uint_le32_t __x)
-{
-  return   (uint32_t) __x.__octet[3] << 24
-	 | (uint32_t) __x.__octet[2] << 16
-	 | (uint32_t) __x.__octet[1] <<  8
-	 |	      __x.__octet[0];
-}
-
-#endif  /* not known to be little endian */
-	
 #endif

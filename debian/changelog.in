@@ -1,3 +1,10 @@
+lfanew (20230716-build20230716-1~@distro@) @distro@; urgency=medium
+
+  * Decouple headers and program.
+  * <nexgen/mzendian.h>: make little endian types unaligned.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Sun, 16 Jul 2023 00:26:01 +0000
+
 lfanew (20230405-build20230406-1~@distro@) @distro@; urgency=medium
 
   * Update Debian package description.

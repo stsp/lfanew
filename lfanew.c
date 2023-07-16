@@ -35,7 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "mz.h"
+#include <nexgen/mzendian.h>
+#include <nexgen/mzhdr.h>
 
 #ifdef __ACK
 extern int getopt (int, char * const[], const char *);
