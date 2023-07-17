@@ -1,3 +1,10 @@
+lfanew (20230717-build20230717-1~@distro@) @distro@; urgency=medium
+
+  * <nexgen/mzendian.h>: add 64-bit functions; handle more known-little-endian
+    platforms.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Mon, 17 Jul 2023 10:18:51 +0000
+
 lfanew (20230716-build20230716-1~@distro@) @distro@; urgency=medium
 
   * Decouple headers and program.
