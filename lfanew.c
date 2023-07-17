@@ -124,7 +124,7 @@ parse_args (int argc, char **argv)
 {
   int opt;
   char *ep;
-  while ((opt = getopt (argc, argv, "a:ko:U")) != -1)
+  while ((opt = getopt (argc, argv, "ko:U")) != -1)
     {
       switch (opt)
 	{
