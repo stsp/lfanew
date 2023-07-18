@@ -27,8 +27,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NEXGEN_MZENDIAN_H
-#define _NEXGEN_MZENDIAN_H
+#ifndef _LFANEW_NEXGEN_MZENDIAN_H
+#define _LFANEW_NEXGEN_MZENDIAN_H
 
 #include <stdint.h>
 
@@ -62,7 +62,10 @@ typedef union
 typedef union
   {
     uint_le64_t __xo;
+    uint_le32_t __xdw[2];
+#ifdef UINT64_MAX
     uint64_t __xi;
+#endif
   } uint_aligned_le64_t;
 
 #if (defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
@@ -86,6 +89,7 @@ hle32 (uint32_t __x)
   return __u.__xo;
 }
 
+# ifdef UINT64_MAX
 static uint_le64_t
 hle64 (uint64_t __x)
 {
@@ -93,6 +97,7 @@ hle64 (uint64_t __x)
   __u.__xi = __x;
   return __u.__xo;
 }
+# endif
 
 static uint16_t
 leh16 (uint_le16_t __x)
@@ -110,12 +115,30 @@ leh32 (uint_le32_t __x)
   return __u.__xi;
 }
 
+# ifdef UINT64_MAX
 static uint64_t
 leh64 (uint_le64_t __x)
 {
   uint_aligned_le64_t __u;
   __u.__xo = __x;
   return __u.__xi;
+}
+# endif
+
+static uint32_t
+leh64lo (uint_le64_t __x)
+{
+  uint_aligned_le64_t __u;
+  __u.__xo = __x;
+  return leh32 (__u.__xdw[0]);
+}
+
+static uint32_t
+leh64hi (uint_le64_t __x)
+{
+  uint_aligned_le64_t __u;
+  __u.__xo = __x;
+  return leh32 (__u.__xdw[1]);
 }
 
 #else  /* not known to be little endian */
@@ -140,6 +163,7 @@ hle32 (uint32_t __x)
   return __xle;
 }
 
+# ifdef UINT64_MAX
 static uint_le64_t
 hle64 (uint64_t __x)
 {
@@ -154,6 +178,7 @@ hle64 (uint64_t __x)
   __xle.__octet[7] = (uint8_t) (__x >> 56);
   return __xle;
 }
+# endif
 
 static uint16_t
 leh16 (uint_le16_t __x)
@@ -171,6 +196,7 @@ leh32 (uint_le32_t __x)
 	 |	      __x.__octet[0];
 }
 
+# ifdef UINT64_MAX
 static uint64_t
 leh64 (uint_le64_t __x)
 {
@@ -183,7 +209,26 @@ leh64 (uint_le64_t __x)
 	 | (uint64_t) __x.__octet[1] <<  8
 	 |	      __x.__octet[0];
 }
+# endif
+
+static uint32_t
+leh64lo (uint_le64_t __x)
+{
+  return   (uint32_t) __x.__octet[3] << 24
+	 | (uint32_t) __x.__octet[2] << 16
+	 | (uint32_t) __x.__octet[1] <<  8
+	 |	      __x.__octet[0];
+}
+
+static uint32_t
+leh64hi (uint_le64_t __x)
+{
+  return   (uint32_t) __x.__octet[7] << 24
+	 | (uint32_t) __x.__octet[6] << 16
+	 | (uint32_t) __x.__octet[5] <<  8
+	 |	      __x.__octet[4];
+}
 
 #endif  /* not known to be little endian */
-	
+
 #endif

@@ -27,8 +27,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NEXGEN_MZHDR_H
-#define _NEXGEN_MZHDR_H
+#ifndef _LFANEW_NEXGEN_MZHDR_H
+#define _LFANEW_NEXGEN_MZHDR_H
 
 #include <nexgen/mzendian.h>
 
