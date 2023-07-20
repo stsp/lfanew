@@ -68,8 +68,11 @@ typedef union
 #endif
   } uint_aligned_le64_t;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 #if (defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
-     && __BYTE_ORDER - 0 == __ORDER_LITTLE_ENDIAN__ - 0) \
+     && __BYTE_ORDER__ - 0 == __ORDER_LITTLE_ENDIAN__ - 0) \
     || defined __i386__ || defined __i386 || defined __i86__ || defined __i86 \
     || defined __ARMEL__ || defined __AARCH64EL__
 
@@ -230,5 +233,7 @@ leh64hi (uint_le64_t __x)
 }
 
 #endif  /* not known to be little endian */
+
+#pragma GCC diagnostic pop
 
 #endif
