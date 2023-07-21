@@ -50,23 +50,29 @@ typedef unsigned long ul_t;
 typedef enum
 {
   MODE_LFANEW,
+  MODE_STUBIFY,
   MODE_UNSTUBIFY,
   MODE_DEFAULT = MODE_LFANEW
 } op_mode_t;
 
 static op_mode_t op_mode = MODE_DEFAULT;
-static bool keep_output = false;
-static const char *me = NULL, *out_path = NULL, *in_path = NULL;
-static FILE *in = NULL, *out = NULL;
+static bool keep_output = false, force_cp_cblp = false;
+static const char *me = NULL, *out_path = NULL,
+		  *in1_path = NULL, *in2_path = NULL;
+static FILE *in1 = NULL, *in2 = NULL, *out = NULL;
 
 static void
 usage (void)
 {
-  fprintf (stderr,
-	   "usage:\n"
-	   "  %s [-k] -o OUT-STUB-FILE IN-STUB-FILE       # add .e_lfanew\n"
-	   "  %s [-k] -U -o OUT-PAYLOAD-FILE IN-FAT-FILE  # unstubify\n",
-	   me, me);
+  fprintf
+    (stderr, "usage:\n"
+	     "  # to add .e_lfanew\n"
+	     "  %s [-k] -o OUT-STUB-FILE IN-STUB-FILE\n"
+	     "  # to stubify\n"
+	     "  %s -S [-k] [-p] -o OUT-FAT-FILE IN-PAYLOAD-FILE IN-STUB-FILE\n"
+	     "  # to unstubify\n"
+	     "  %s -U [-k] -o OUT-PAYLOAD-FILE IN-FAT-FILE\n",
+     me, me, me);
   exit (1);
 }
 
@@ -75,10 +81,12 @@ clean_up (void)
 {
   if (out)
     fclose (out);
-  if (in)
-    fclose (in);
   if (! keep_output && out_path)
    remove (out_path);
+  if (in1)
+    fclose (in1);
+  if (in2)
+    fclose (in2);
 }
 
 static void
@@ -123,8 +131,7 @@ static void
 parse_args (int argc, char **argv)
 {
   int opt;
-  char *ep;
-  while ((opt = getopt (argc, argv, "ko:U")) != -1)
+  while ((opt = getopt (argc, argv, "ko:pSU")) != -1)
     {
       switch (opt)
 	{
@@ -134,6 +141,12 @@ parse_args (int argc, char **argv)
 	case 'o':
 	  out_path = optarg;
 	  break;
+	case 'p':
+	  force_cp_cblp = true;
+	  break;
+	case 'S':
+	  op_mode = MODE_STUBIFY;
+	  break;
 	case 'U':
 	  op_mode = MODE_UNSTUBIFY;
 	  break;
@@ -141,9 +154,20 @@ parse_args (int argc, char **argv)
 	  usage ();
 	}
     }
-  if (!out_path || optind != argc - 1)
+  if (! out_path)
     usage ();
-  in_path = argv[optind];
+  switch (op_mode)
+    {
+    case MODE_STUBIFY:
+      if (optind != argc - 2)
+	usage ();
+      in2_path = argv[optind + 1];
+      break;
+    default:
+      if (optind != argc - 1)
+	usage ();
+    }
+  in1_path = argv[optind];
 }
 
 static FILE *
@@ -171,13 +195,10 @@ close_out (FILE *out)
     error_with_errno ("cannot close output file");
 }
 
-static void
-process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
-		       uint32_t *p_mz_sz)
+static ul_t
+size_it (FILE *in)
 {
   ul_t tot_sz;
-  uint16_t lfarlc, cp, cblp, cparhdr;
-  uint32_t mz_sz, hdr_end;
 
   if (fseek (in, 0L, SEEK_END) != 0)
     error_with_errno ("cannot get size of input file");
@@ -187,11 +208,23 @@ process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
     error_with_errno ("cannot get size of input file");
   --tot_sz;
 
-  memset (pmz, 0, sizeof (mz_hdr_t));
+  rewind (in);
+  return tot_sz;
+}
 
-  if (tot_sz < offsetof (mz_hdr_t, e_res)
-      || fseek (in, 0L, SEEK_SET) != 0)
+static void
+process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
+		       uint32_t *p_mz_sz)
+{
+  ul_t tot_sz;
+  uint16_t lfarlc, cp, cblp, cparhdr;
+  uint32_t mz_sz, hdr_end;
+
+  tot_sz = size_it (in);
+  if (tot_sz < offsetof (mz_hdr_t, e_res))
     error ("input is not MZ file");
+
+  memset (pmz, 0, sizeof (mz_hdr_t));
   if (fread (pmz, offsetof (mz_hdr_t, e_res), 1, in) != 1)
     error_with_errno ("cannot read input file");
   if (leh16 (pmz->e_magic) != MZ_MAGIC)
@@ -223,9 +256,36 @@ process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
   if (hdr_end > tot_sz)
     error ("MZ header overshoots file end, %#lx > %#lx",
 	   (ul_t) hdr_end, tot_sz);
+  if (lfarlc > hdr_end)
+    error ("malformed MZ, e_lfarlc = %#x > %#lx",
+	   (ui_t) lfarlc, (ul_t) hdr_end);
 
   *p_tot_sz = tot_sz;
   *p_mz_sz = mz_sz;
+}
+
+static void
+process_ne_magic (FILE *in, uint_le16_t *p_ne_magic_le, const char *what)
+{
+  size_t magic_len = sizeof (*p_ne_magic_le);
+  uint16_t ne_magic;
+  if (fread (p_ne_magic_le, 1, magic_len, in) != magic_len)
+    error ("cannot read payload magic number");
+  ne_magic = leh16 (*p_ne_magic_le);
+  switch (ne_magic)
+    {
+    default:
+      break;
+    case 0x454c:  /* "LE" */
+    case 0x584c:  /* "LX" */
+      /*
+       * The "LE" & "LX" file format structures contain file offsets that
+       * are relative to the beginning of the entire input file.  To truly
+       * unstubify these file formats, we will have to adjust these offsets
+       * correctly.
+       */
+      error ("I do not know how to %s an LE or LX program", what);
+    }
 }
 
 static void
@@ -274,8 +334,8 @@ lfanew (void)
   uint32_t mz_sz, new_mz_sz, new_tot_sz, rels_sz, rels_end, hdr_end,
 	   new_rels_end, new_hdr_end;
 
-  in = open_in (in_path);
-  process_mz_hdr_common (in, &mz, &tot_sz, &mz_sz);
+  in1 = open_in (in1_path);
+  process_mz_hdr_common (in1, &mz, &tot_sz, &mz_sz);
 
   if (tot_sz > (ul_t) UINT32_MAX - MZ_PARA_SZ + 1)
     error ("input file too large, %#lx > 4 GiB - %#x",
@@ -298,7 +358,7 @@ lfanew (void)
 	   (ui_t) lfarlc, (ul_t) (rels_end - lfarlc), (ul_t) hdr_end);
 
   oem = lfarlc - offsetof (mz_hdr_t, e_res);
-  if (oem != 0 && fread (mz.e_res, oem, 1, in) != 1)
+  if (oem != 0 && fread (mz.e_res, oem, 1, in1) != 1)
     error ("cannot read optional header information");
 
   new_rels_end = MZ_LFARLC_NEW + (uint32_t) crlc * MZ_RELOC_SZ;
@@ -329,14 +389,87 @@ lfanew (void)
   if (fwrite (&mz, sizeof mz, 1, out) != 1)
     error_with_errno ("cannot write output file");
 
-  copy (in, out, rels_sz, lfarlc, MZ_LFARLC_NEW);
+  copy (in1, out, rels_sz, lfarlc, MZ_LFARLC_NEW);
   pad (out, new_hdr_end - new_rels_end);
-  skip (in, hdr_end - rels_end);
-  copy (in, out, tot_sz - hdr_end, hdr_end, new_hdr_end);
+  skip (in1, hdr_end - rels_end);
+  copy (in1, out, tot_sz - hdr_end, hdr_end, new_hdr_end);
   pad (out, aligned_tot_sz - tot_sz);
 
   close_out (out);
-  fclose (in);
+  fclose (in1);
+}
+
+static void
+stubify (void)
+{
+  uint_le16_t ne_magic_le;
+  size_t magic_len = sizeof (uint_le16_t);
+  ul_t tot1_sz, tot2_sz, new_tot_sz;
+  mz_hdr_t mz2;
+  uint16_t lfarlc, oem;
+  uint32_t mz2_sz, stub_sz, lfanew = 0;
+  bool renew = false;
+
+  in1 = open_in (in1_path);
+  tot1_sz = size_it (in1);
+  process_ne_magic (in1, &ne_magic_le, "stubify");
+
+  in2 = open_in (in2_path);
+  process_mz_hdr_common (in2, &mz2, &tot2_sz, &mz2_sz);
+
+  lfarlc = leh16 (mz2.e_lfarlc);
+  stub_sz = mz2_sz;
+  if (lfarlc == MZ_LFARLC_NEW)
+    {
+      oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
+      if (oem != 0 && fread (&mz2.e_res, oem, 1, in2) == 1)
+	{
+	  lfanew = leh32 (mz2.e_lfanew);
+	  if (lfanew != 0 && lfanew <= tot2_sz)
+	    {
+	      if (! force_cp_cblp)
+		stub_sz = lfanew;
+	      else if (tot1_sz > (ul_t) UINT32_MAX - MZ_PARA_SZ + 1
+		       || stub_sz > (ul_t) UINT32_MAX - MZ_PARA_SZ + 1
+				    - tot1_sz)
+		error ("output file will be too large, "
+		       "%#lx + %#lx > 4 GiB - %#x",
+		       (ul_t) stub_sz, tot1_sz, (ui_t) MZ_PARA_SZ);
+	      else
+		{
+		  new_tot_sz = stub_sz + (uint32_t) tot1_sz;
+		  new_tot_sz = (new_tot_sz + MZ_PARA_SZ - 1)
+			       & -(ul_t) MZ_PARA_SZ;
+		  mz2.e_lfanew = hle32 (new_tot_sz);
+		  renew = true;
+		}
+	    }
+	}
+    }
+
+  out = open_out (out_path);
+
+  if (renew)
+    {
+      if (fwrite (&mz2, 1, MZ_LFARLC_NEW, out) != MZ_LFARLC_NEW)
+	error ("cannot write MZ header");
+      copy (in2, out, stub_sz - MZ_LFARLC_NEW, MZ_LFARLC_NEW, MZ_LFARLC_NEW);
+    }
+  else
+    {
+      rewind (in2);
+      copy (in2, out, stub_sz, 0, 0);
+    }
+  fclose (in2);
+
+  if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
+    error ("cannot write payload magic number");
+  copy (in1, out, tot1_sz - magic_len, magic_len, magic_len);
+  if (renew)
+    pad (out, new_tot_sz - stub_sz - tot1_sz);
+
+  close_out (out);
+  fclose (in1);
 }
 
 static void
@@ -344,20 +477,20 @@ unstubify (void)
 {
   ul_t tot_sz;
   mz_hdr_t mz;
-  uint16_t lfarlc, oem, ne_magic;
+  uint16_t lfarlc, oem;
   uint32_t mz_sz, stub_sz, lfanew;
   uint_le16_t ne_magic_le;
   size_t magic_len = sizeof (ne_magic_le);
 
-  in = open_in (in_path);
-  process_mz_hdr_common (in, &mz, &tot_sz, &mz_sz);
+  in1 = open_in (in1_path);
+  process_mz_hdr_common (in1, &mz, &tot_sz, &mz_sz);
 
   lfarlc = leh16 (mz.e_lfarlc);
   stub_sz = mz_sz;
   if (lfarlc == MZ_LFARLC_NEW)
     {
-      oem = lfarlc - offsetof (mz_hdr_t, e_res);
-      if (oem != 0 && fread (&mz.e_res, oem, 1, in) == 1)
+      oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
+      if (oem != 0 && fread (&mz.e_res, oem, 1, in2) == 1)
 	{
 	  lfanew = leh32 (mz.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot_sz)
@@ -370,35 +503,19 @@ unstubify (void)
   else if (tot_sz - stub_sz < 2)
     error ("too little non-stub content to unstubify?");
 
-  if (fseek (in, stub_sz, SEEK_SET) != 0)
+  if (fseek (in1, stub_sz, SEEK_SET) != 0)
     error ("cannot seek to end of stub");
 
-  if (fread (&ne_magic_le, 1, magic_len, in) != magic_len)
-    error ("cannot read payload magic number");
-  ne_magic = leh16 (ne_magic_le);
-  switch (ne_magic)
-    {
-    default:
-      break;
-    case 0x454c:  /* "LE" */
-    case 0x584c:  /* "LX" */
-      /*
-       * The "LE" & "LX" file format structures contain file offsets that
-       * are relative to the beginning of the entire input file.  To truly
-       * unstubify these file formats, we will have to adjust these offsets
-       * correctly.
-       */
-      error ("I do not know how to unstubify an LE or LX program");
-    }
+  process_ne_magic (in1, &ne_magic_le, "unstubify");
 
   out = open_out (out_path);
   if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
     error ("cannot write payload magic number");
-  copy (in, out, tot_sz - stub_sz - magic_len,
+  copy (in1, out, tot_sz - stub_sz - magic_len,
 	stub_sz + magic_len, (uint32_t) 0);
 
   close_out (out);
-  fclose (in);
+  fclose (in1);
 }
 
 static void
@@ -406,8 +523,12 @@ process (void)
 {
   switch (op_mode)
     {
-    case MODE_LFANEW:
+    default:
       lfanew ();
+      break;
+
+    case MODE_STUBIFY:
+      stubify ();
       break;
 
     case MODE_UNSTUBIFY:

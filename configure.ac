@@ -61,7 +61,11 @@ if test -n "$lfanew_ackhost"; then
   fi
 fi
 AC_PROG_INSTALL
+AC_LANG_WERROR
 AC_PROG_CC
+if test yes = "$GCC"; then
+  CFLAGS="-Wall $CFLAGS"
+fi
 
 AC_SUBST([lfanew_ackhost])
 AC_CONFIG_FILES([Makefile])

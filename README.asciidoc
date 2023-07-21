@@ -22,13 +22,19 @@
 Usage:
 
 * ``lfanew`` [``-k``] ``-o`` __out-stub-file__ __in-stub-file__
+* ``lfanew -S`` [``-k``] [``-p``] ``-o`` __out-fat-file__ __in-payload-file__ __in-stub-file__
 * ``lfanew -U`` [``-k``] ``-o`` __out-payload-file__ __in-fat-file__
+
+Operating modes:
+
+* On default, `lfanew` adds a `.e_lfanew` header field{fn-pietrek-19} to an old-style `MZ` executable program, so that the program can potentially be used as an MS-DOS loader stub for a modern "new executable" format.
+* `-S` ("stubify"): tells `lfanew` to create a fat binary by combining a stub with a "new executable" payload.
+* `-U` ("unstubify"): tells `lfanew` to extract the "new executable" payload contained inside a fat binary.
 
 Options:
 
-* On default, `lfanew` adds a `.e_lfanew` header field{fn-pietrek-19} to an old-style `MZ` executable program, so that the program can potentially be used as an MS-DOS loader stub for a modern "new executable" format.
-* `-U` ("unstubify"): tells `lfanew` to extract the "new executable" payload contained inside a fat binary.
 * `-k` ("keep"): says to keep the output file in case of an error, rather than delete it.
+* `-p` ("pages"): says to derive the stub size from `.e_cp` and `.e_cblp`, rather than from `.e_lfanew`.   If the stub has a pre-existing `.e_lfanew` field, `-p` also adjusts `.e_lfanew` to point to the end of the payload.
 
 == Code library
 

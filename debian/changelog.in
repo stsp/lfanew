@@ -1,3 +1,9 @@
+lfanew (20230721-build20230721-1~@distro@) @distro@; urgency=medium
+
+  * lfanew.c: add `-S` (stubify) option.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 21 Jul 2023 10:22:26 +0000
+
 lfanew (20230719-build20230719-1~@distro@) @distro@; urgency=medium
 
   * <nexgen/*.h>: add leh64lo (.) & leh64hi (.); tidy up.
