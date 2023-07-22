@@ -490,7 +490,7 @@ unstubify (void)
   if (lfarlc == MZ_LFARLC_NEW)
     {
       oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
-      if (oem != 0 && fread (&mz.e_res, oem, 1, in2) == 1)
+      if (oem != 0 && fread (&mz.e_res, oem, 1, in1) == 1)
 	{
 	  lfanew = leh32 (mz.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot_sz)
