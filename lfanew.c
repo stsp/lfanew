@@ -278,13 +278,14 @@ process_ne_magic (FILE *in, uint_le16_t *p_ne_magic_le, const char *what)
       break;
     case 0x454c:  /* "LE" */
     case 0x584c:  /* "LX" */
+    case 0x4550:  /* "PE" */
       /*
-       * The "LE" & "LX" file format structures contain file offsets that
-       * are relative to the beginning of the entire input file.  To truly
-       * unstubify these file formats, we will have to adjust these offsets
-       * correctly.
+       * The "LE", "LX", & "PE" file format structures contain file offsets
+       * that are relative to the beginning of the entire input file.  To
+       * truly unstubify these file formats, we will have to adjust these
+       * offsets correctly, & maybe even realign the file contents.
        */
-      error ("I do not know how to %s an LE or LX program", what);
+      error ("I do not know how to %s an LE, LX, or PE program", what);
     }
 }
 
