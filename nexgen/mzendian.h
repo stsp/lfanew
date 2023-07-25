@@ -51,13 +51,14 @@ typedef union
   {
     uint_le16_t __xo;
     uint16_t __xi;
-  } uint_aligned_le16_t;
+  } uint_lea16_t;
 
 typedef union
   {
     uint_le32_t __xo;
+    uint_le16_t __xw[2];
     uint32_t __xi;
-  } uint_aligned_le32_t;
+  } uint_lea32_t;
 
 typedef union
   {
@@ -66,21 +67,30 @@ typedef union
 #ifdef UINT64_MAX
     uint64_t __xi;
 #endif
-  } uint_aligned_le64_t;
+  } uint_lea64_t;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-#if (defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
-     && __BYTE_ORDER__ - 0 == __ORDER_LITTLE_ENDIAN__ - 0) \
-    || defined __i386__ || defined __i386 || defined __386__ \
-    || defined __i86__ || defined __i86 || defined __I86__ \
-    || defined __ARMEL__ || defined __AARCH64EL__
+#undef _NEXGEN_MZENDIAN_ASSUME_LE
+#if ! defined __ACK || defined __OPTIMIZE__ \
+    || defined __SW_OI || defined __SW_OR  /* -oi or -or under Open Watcom */
+# if defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
+     && __BYTE_ORDER__ - 0 == __ORDER_LITTLE_ENDIAN__ - 0
+#   define _NEXGEN_MZENDIAN_ASSUME_LE
+# elif defined __i386__ || defined __i386 || defined __386__ \
+       || defined __i86__ || defined __i86 || defined __I86__ \
+       || defined __ARMEL__ || defined __AARCH64EL__
+#   define _NEXGEN_MZENDIAN_ASSUME_LE
+# endif
+#endif
+
+#ifdef _NEXGEN_MZENDIAN_ASSUME_LE
 
 static uint_le16_t
 hle16 (uint16_t __x)
 {
-  uint_aligned_le16_t __u;
+  uint_lea16_t __u;
   __u.__xi = __x;
   return __u.__xo;
 }
@@ -88,7 +98,7 @@ hle16 (uint16_t __x)
 static uint_le32_t
 hle32 (uint32_t __x)
 {
-  uint_aligned_le32_t __u;
+  uint_lea32_t __u;
   __u.__xi = __x;
   return __u.__xo;
 }
@@ -97,7 +107,7 @@ hle32 (uint32_t __x)
 static uint_le64_t
 hle64 (uint64_t __x)
 {
-  uint_aligned_le64_t __u;
+  uint_lea64_t __u;
   __u.__xi = __x;
   return __u.__xo;
 }
@@ -106,7 +116,7 @@ hle64 (uint64_t __x)
 static uint16_t
 leh16 (uint_le16_t __x)
 {
-  uint_aligned_le16_t __u;
+  uint_lea16_t __u;
   __u.__xo = __x;
   return __u.__xi;
 }
@@ -114,16 +124,32 @@ leh16 (uint_le16_t __x)
 static uint32_t
 leh32 (uint_le32_t __x)
 {
-  uint_aligned_le32_t __u;
+  uint_lea32_t __u;
   __u.__xo = __x;
   return __u.__xi;
+}
+
+static uint16_t
+leh32lo (uint_le32_t __x)
+{
+  uint_lea32_t __u;
+  __u.__xo = __x;
+  return leh16 (__u.__xw[0]);
+}
+
+static uint16_t
+leh32hi (uint_le32_t __x)
+{
+  uint_lea32_t __u;
+  __u.__xo = __x;
+  return leh16 (__u.__xw[1]);
 }
 
 # ifdef UINT64_MAX
 static uint64_t
 leh64 (uint_le64_t __x)
 {
-  uint_aligned_le64_t __u;
+  uint_lea64_t __u;
   __u.__xo = __x;
   return __u.__xi;
 }
@@ -132,7 +158,7 @@ leh64 (uint_le64_t __x)
 static uint32_t
 leh64lo (uint_le64_t __x)
 {
-  uint_aligned_le64_t __u;
+  uint_lea64_t __u;
   __u.__xo = __x;
   return leh32 (__u.__xdw[0]);
 }
@@ -140,7 +166,7 @@ leh64lo (uint_le64_t __x)
 static uint32_t
 leh64hi (uint_le64_t __x)
 {
-  uint_aligned_le64_t __u;
+  uint_lea64_t __u;
   __u.__xo = __x;
   return leh32 (__u.__xdw[1]);
 }
@@ -198,6 +224,20 @@ leh32 (uint_le32_t __x)
 	 | (uint32_t) __x.__octet[2] << 16
 	 | (uint32_t) __x.__octet[1] <<  8
 	 |	      __x.__octet[0];
+}
+
+static uint16_t
+leh32lo (uint_le32_t __x)
+{
+  return (uint16_t) __x.__octet[1] <<  8
+		  | __x.__octet[0];
+}
+
+static uint16_t
+leh32hi (uint_le32_t __x)
+{
+  return (uint16_t) __x.__octet[3] <<  8
+		  | __x.__octet[2];
 }
 
 # ifdef UINT64_MAX

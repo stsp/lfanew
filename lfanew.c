@@ -265,14 +265,14 @@ process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
 }
 
 static void
-process_ne_magic (FILE *in, uint_le16_t *p_ne_magic_le, const char *what)
+process_ne_magic (FILE *in, uint_le32_t *p_ne_magic_le, const char *what)
 {
   size_t magic_len = sizeof (*p_ne_magic_le);
-  uint16_t ne_magic;
+  uint16_t ne_magic_lo;
   if (fread (p_ne_magic_le, 1, magic_len, in) != magic_len)
     error ("cannot read payload magic number");
-  ne_magic = leh16 (*p_ne_magic_le);
-  switch (ne_magic)
+  ne_magic_lo = leh32lo (*p_ne_magic_le);
+  switch (ne_magic_lo)
     {
     default:
       break;
@@ -403,8 +403,8 @@ lfanew (void)
 static void
 stubify (void)
 {
-  uint_le16_t ne_magic_le;
-  size_t magic_len = sizeof (uint_le16_t);
+  uint_le32_t ne_magic_le;
+  size_t magic_len = sizeof (ne_magic_le);
   ul_t tot1_sz, tot2_sz, new_tot_sz;
   mz_hdr_t mz2;
   uint16_t lfarlc, oem;
@@ -480,7 +480,7 @@ unstubify (void)
   mz_hdr_t mz;
   uint16_t lfarlc, oem;
   uint32_t mz_sz, stub_sz, lfanew;
-  uint_le16_t ne_magic_le;
+  uint_le32_t ne_magic_le;
   size_t magic_len = sizeof (ne_magic_le);
 
   in1 = open_in (in1_path);
