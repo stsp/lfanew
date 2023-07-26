@@ -25,52 +25,45 @@ dnl LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-_LFANEW_GCC_ACK_FIX
+AT_BANNER([[lfanew]])
 
-AC_PREREQ(2.69)
-AC_INIT([lfanew],m4_esyscmd_s([
-  if git diff --quiet HEAD 2>/dev/null; then
-    TZ=UTC0 git log -n1 --oneline --date=short-local --format='%ad' | \
-	    sed 's/-//g'
-  else
-    TZ=UTC0 date +%Y%m%d
-  fi]),,[lfanew])
-AC_CONFIG_SRCDIR([LICENSE])
-
-AC_DISABLE_OPTION_CHECKING
-AC_CANONICAL_BUILD
-AC_CANONICAL_HOST
-lfanew_ackhost=
-case "$host_alias" in
-  i386-linuxack | i386-*-linuxack)
-    lfanew_ackhost=linux386 ;;
-  ia16-msdosack | ia16-*-msdosack)
-    lfanew_ackhost=msdos86 ;;
-  powerpc-linuxack | powerpc-*-linuxack)
-    lfanew_ackhost=linuxppc ;;
-esac
-if test -n "$lfanew_ackhost"; then
-  if test -z "$CC"; then
-    AC_CHECK_PROG(CC, ack-cc, ack-cc -m"$lfanew_ackhost" -.c, dnl
-			      ack -m"$lfanew_ackhost" -.c)
-    export CC
-  fi
-  if test -z "$CFLAGS"; then
-    CFLAGS='-O6 -S'
-    export CFLAGS
-  fi
-fi
-AC_PROG_INSTALL
-AC_LANG_WERROR
-AC_PROG_CC
-if test yes = "$GCC"; then
-  CFLAGS="-Wall $CFLAGS"
-fi
-AC_PATH_PROG(DOS2UNIX, dos2unix, /bin/false)
-AC_PATH_PROG(NASM, nasm, /bin/false)
-AC_PATH_PROGS(DOSRUN, [emu2 86sim], /bin/false)
-
-AC_SUBST([lfanew_ackhost])
-AC_CONFIG_TESTDIR([tests])
-AC_CONFIG_FILES([Makefile tests/atlocal])
-AC_OUTPUT
+AT_SETUP([[Default mode (lfanew)]])
+AT_LFANEW_ASM([[
+%define MZ_PG_SZ	0x200
+%define MZ_PARA_SZ	0x10
+%define MZ_PSP_SZ	0x100
+mz_start:
+	dw	0x5a4d						; .e_magic
+	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
+	dw	(mz_end - mz_start + MZ_PG_SZ - 1) / MZ_PG_SZ	; .e_cp
+	dw	0						; .e_crlc
+	dw	(mz_hdr_end - mz_start) / MZ_PARA_SZ		; .e_cparhdr
+	dw	0						; .e_minalloc
+	dw	-1						; .e_maxalloc
+	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
+	dw	0						; .e_csum
+	dw	start						; .e_ip
+	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
+	dw	mz_relocs					; .e_lfarlc
+	dw	0						; .e_ovno
+mz_relocs:
+	align	0x10
+mz_hdr_end:
+msg:
+	db	"world, hello",13,10,"$"
+start:
+	push	cs
+	pop	ds
+	mov	ah, 9
+	mov	dx, msg
+	int	0x21
+	mov	ax, 0x4c00
+	int	0x21
+mz_end:
+]])
+AT_LFANEW_DOSRUN([AT_LFANEW_AOUT],[[world, hello
+]])
+AT_CHECK([AT_LFANEW_TOOL [-o] AT_LFANEW_A2OUT AT_LFANEW_AOUT])
+AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[world, hello
+]])
+AT_CLEANUP

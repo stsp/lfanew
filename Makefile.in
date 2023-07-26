@@ -79,9 +79,43 @@ distclean maintainer-clean: clean
 	$(RM) Makefile config.cache config.log config.status
 .PHONY: distclean maintainer-clean
 
+check check-local: tests/testsuite
+	exec $< -C tests $(TESTSUITEFLAGS)
+.PHONY: check check-local
+
+installcheck installcheck-local: tests/testsuite
+	exec $< --x-installcheck -C tests $(TESTSUITEFLAGS)
+.PHONY: installcheck installcheck-local
+
+helpcheck: tests/testsuite
+	exec $< -C tests --help $(TESTSUITEFLAGS)
+.PHONY: helpcheck
+
+listcheck: tests/testsuite
+	exec $< -C tests --list $(TESTSUITEFLAGS)
+.PHONY: listcheck
+
 lfanew$(EXEEXT): lfanew.$(OBJEXT)
 
 lfanew.$(OBJEXT): lfanew.c $(HEADERS)
 
 %$(EXEEXT): %.o
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+# Copy the generated tests/testsuite from the source directory to the build
+# directory, or create a symlink from the latter to the former --- but only
+# if the two directories are different.
+tests/testsuite: $(abs_srcdir)/tests/testsuite
+	set -e; \
+	if test \! $@ -ef $<; then \
+	  $(RM) $@.tmp; \
+	  ln -s $< $@.tmp || cp $< $@.tmp; \
+	  mv $@.tmp $@; \
+	fi
+.PRECIOUS: tests/testsuite
+
+$(abs_srcdir)/tests/testsuite: $(abs_srcdir)/tests/testsuite.at \
+			       $(wildcard $(abs_srcdir)/tests/*.at \
+					  $(abs_srcdir)/tests/*.in)
+	cd $(abs_srcdir)/tests && exec autom4te --language=autotest -o $@ $<
+.PRECIOUS: $(abs_srcdir)/tests/testsuite

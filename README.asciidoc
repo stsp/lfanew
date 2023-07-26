@@ -10,6 +10,8 @@
 :bopt: [
 :eopt: ]
 
+https://ci.appveyor.com/project/tkchia/lfanew/branch/main[image:https://ci.appveyor.com/api/projects/status/glvafsajsnflh3rn/branch/main["AppVeyor build status"]]
+
 `lfanew` comprises
 
 * a tool to manipulate fat binary programs wrapped inside MS-DOS `MZ` files;
