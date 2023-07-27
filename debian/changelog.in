@@ -1,3 +1,10 @@
+lfanew (20230727-build20230727-1~@distro@) @distro@; urgency=medium
+
+  * lfanew.c: add support for stubifying & unstubifying _some_ PE programs.
+  * <nexgen/pehdr.h>: add.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Thu, 27 Jul 2023 19:25:31 +0000
+
 lfanew (20230726-build20230726-1~@distro@) @distro@; urgency=medium
 
   * <nexgen/mzendian.h>: add functions leh32lo (.) & leh32hi (.).

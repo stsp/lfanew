@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <nexgen/mzendian.h>
 #include <nexgen/mzhdr.h>
+#include <nexgen/pehdr.h>
 
 #ifdef __ACK
 extern int getopt (int, char * const[], const char *);
@@ -198,9 +199,11 @@ close_out (FILE *out)
 static ul_t
 size_it (FILE *in)
 {
+  fpos_t pos;
   ul_t tot_sz;
 
-  if (fseek (in, 0L, SEEK_END) != 0)
+  if (fgetpos (in, &pos) != 0
+      || fseek (in, 0L, SEEK_END) != 0)
     error_with_errno ("cannot get size of input file");
 
   tot_sz = (ul_t) (ftell (in) + 1);
@@ -208,7 +211,9 @@ size_it (FILE *in)
     error_with_errno ("cannot get size of input file");
   --tot_sz;
 
-  rewind (in);
+  if (fsetpos (in, &pos) != 0)
+    error_with_errno ("cannot get size of input file");
+
   return tot_sz;
 }
 
@@ -278,15 +283,33 @@ process_ne_magic (FILE *in, uint_le32_t *p_ne_magic_le, const char *what)
       break;
     case 0x454c:  /* "LE" */
     case 0x584c:  /* "LX" */
-    case 0x4550:  /* "PE" */
       /*
-       * The "LE", "LX", & "PE" file format structures contain file offsets
-       * that are relative to the beginning of the entire input file.  To
-       * truly unstubify these file formats, we will have to adjust these
-       * offsets correctly, & maybe even realign the file contents.
+       * The LE, LX, & PE file format structures contain file offsets that
+       * are relative to the beginning of the entire input file.  To truly
+       * unstubify these file formats, we will have to adjust these offsets
+       * correctly, & maybe even realign the file contents.  Currently
+       * lfanew only knows how to do this for PE files.
        */
-      error ("I do not know how to %s an LE, LX, or PE program", what);
+      error ("I do not know how to %s an LE or LX program", what);
     }
+}
+
+static void
+pad (FILE *out, size_t n)
+{
+  char buf = 0;
+  while (n-- != 0)
+    if (fwrite (&buf, 1, 1, out) != 1)
+      error_with_errno ("cannot pad output file");
+}
+
+static void
+skip (FILE *in, size_t n)
+{
+  char buf;
+  while (n-- != 0)
+    if (fread (&buf, 1, 1, in) != 1)
+      error_with_errno ("cannot skip input bytes");
 }
 
 static void
@@ -308,22 +331,199 @@ copy (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
     }
 }
 
-static void
-pad (FILE *out, size_t n)
+static bool
+is_two_power (ul_t value)
 {
-  char buf = 0;
-  while (n-- != 0)
-    if (fwrite (&buf, 1, 1, out) != 1)
-      error_with_errno ("cannot pad output file");
+  return value != 0 && (value & (value - 1)) == 0;
 }
 
 static void
-skip (FILE *in, size_t n)
+pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust)
 {
-  char buf;
-  while (n-- != 0)
-    if (fread (&buf, 1, 1, in) != 1)
-      error_with_errno ("cannot skip input bytes");
+  uint32_t off = leh32 (*p_off);
+  if (off != 0)
+    {
+      if (off < aligned_inh_size)
+	error ("cannot adjust PE file pointer %#lx < %#lx",
+	       (ul_t) off, (ul_t) aligned_inh_size);
+      *p_off = hle32 (off + adjust);
+    }
+}
+
+static void
+copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
+{
+  uint32_t inh_size, aligned_inh_size, outh_size, aligned_outh_size,
+	   inh_slack, outh_slack, file_align, adjust, code_base, data_base;
+  pe_img_fil_hdr_t fhdr;
+  pe_img_opt_hdr_t ophdr;
+  uint16_t ophdr_size, ophdr_magic, num_sects, i;
+  pe_data_dir_t *ent;
+  pe_sect_hdr_t sect;
+
+  if (sizeof (fhdr) > sz)
+    error ("PE COFF file header overshoots file end");
+
+  if (fread (&fhdr, sizeof (fhdr), 1, in) != 1)
+    error_with_errno ("cannot read PE COFF file header");
+
+  if (leh32 (fhdr.PointerToSymbolTable) != 0
+      || leh32 (fhdr.NumberOfSymbols) != 0)
+    error ("PE COFF symbol table unsupported");
+
+  if (fwrite (&fhdr, sizeof (fhdr), 1, out) != 1)
+    error_with_errno ("cannot write PE COFF file header");
+
+  in_off += sizeof (fhdr);
+  out_off += sizeof (fhdr);
+  sz -= sizeof (fhdr);
+
+  ophdr_size = leh16 (fhdr.SizeOfOptionalHeader);
+  if (ophdr_size < sizeof (ophdr.h.Magic))
+    error ("PE optional header too short");
+  if (ophdr_size > sizeof (ophdr))
+    error ("long PE optional header unsupported, %#x > %#x",
+	   (ui_t) ophdr_size, (ui_t) sizeof (ophdr));
+  if (ophdr_size > sz)
+    error ("PE optional header overshoots file end");
+
+  memset (&ophdr, 0, sizeof (ophdr));
+  if (fread (&ophdr, ophdr_size, 1, in) != 1)
+    error_with_errno ("cannot read PE optional header");
+
+  file_align = leh32 (ophdr.h.FileAlignment);
+  if (! is_two_power (file_align))
+    error ("PE FileAlignment %#lx not power of 2", (ul_t) file_align);
+  num_sects = leh16 (fhdr.NumberOfSections);
+
+  inh_size = (uint32_t) ophdr_size + (uint32_t) num_sects * sizeof (sect);
+  if (inh_size > sz)
+    error ("PE section headers overshoot file end");
+
+  outh_size = inh_size + out_off;
+  inh_size += in_off;
+  aligned_inh_size = leh32 (ophdr.h.SizeOfHeaders);
+  if (inh_size > aligned_inh_size)
+    error ("PE SizeOfHeaders is bogus, %#lx > %#lx",
+	   (ul_t) inh_size, (ul_t) aligned_inh_size);
+  if (aligned_inh_size - in_off > sz)
+    error ("PE SizeOfHeaders overshoots file end, %#lx > %#lx",
+	   (ul_t) (aligned_inh_size - in_off), (ul_t) sz);
+
+  aligned_outh_size = (outh_size + file_align - 1) & -file_align;
+  if (aligned_outh_size < outh_size)
+    error ("output PE headers will be too large, %#lx + %#lx > 4 GiB",
+	   (ul_t) outh_size, (ul_t) file_align);
+  ophdr.h.SizeOfHeaders = hle32 (aligned_outh_size);
+  adjust = aligned_outh_size - aligned_inh_size;
+
+  /*
+   * We need enough virtual address space between {ImageBase} & {ImageBase
+   * + BaseOfCode} to accommodate all the headers, i.e.  MZ stub, PE headers,
+   * & section headers.  For now, simply error out if the BaseOfCode RVA is
+   * too small.  (Alternatively, we could try to adjust all the RVAs in the
+   * program upwards, but this is hard to do right & not a lot of fun.)
+   */
+  code_base = leh32 (ophdr.h.BaseOfCode);
+  if (code_base < aligned_outh_size)
+    error ("PE BaseOfCode too small for output PE headers, %#lx < %#lx",
+	   (ul_t) code_base, (ul_t) aligned_outh_size);
+
+  ophdr_magic = leh16 (ophdr.h.Magic);
+  switch (ophdr_magic)
+    {
+    default:
+      error ("PE optional header type %#x unsupported", (ui_t) ophdr_magic);
+
+    case IMAGE_NT_OPTIONAL_HDR32_MAGIC:  /* PE32 */
+      if (ophdr_size > sizeof (ophdr.h32))
+	error ("long PE32 header unsupported, %#x > %#x",
+	       (ui_t) ophdr_size, (ui_t) sizeof (ophdr.h32));
+
+      data_base = leh32 (ophdr.h32.BaseOfData);
+      if (data_base < aligned_outh_size)
+	error ("PE32 BaseOfData too small for output PE headers: %#lx < %#lx",
+	       (ul_t) data_base, (ul_t) aligned_outh_size);
+
+      ent = &ophdr.h32.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
+      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
+	error ("PE32 debug table unsupported");
+
+      ent = &ophdr.h32.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
+      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+      break;
+
+    case IMAGE_NT_OPTIONAL_HDR64_MAGIC:  /* PE32+ */
+      ent = &ophdr.h64.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
+      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
+	error ("PE32 debug table unsupported");
+
+      ent = &ophdr.h64.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
+      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+    }
+
+  if (fwrite (&ophdr, ophdr_size, 1, out) != 1)
+    error_with_errno ("cannot write PE optional header");
+
+  in_off += ophdr_size;
+  out_off += ophdr_size;
+  sz -= ophdr_size;
+
+  i = 0;
+  while (i != num_sects)
+    {
+      if (sizeof (sect) > sz)
+	error ("PE section header #%#x overshoots file end", (ui_t) i);
+
+      if (fread (&sect, sizeof (sect), 1, in) != 1)
+	error_with_errno ("cannot read PE section header #%#x", (ui_t) i);
+
+      pe_adjust_off (&sect.PointerToRawData, aligned_inh_size, adjust);
+      pe_adjust_off (&sect.PointerToRelocations, aligned_inh_size, adjust);
+      pe_adjust_off (&sect.PointerToLinenumbers, aligned_inh_size, adjust);
+
+      if (fwrite (&sect, sizeof (sect), 1, out) != 1)
+	error_with_errno ("cannot write PE section header #%#x", (ui_t) i);
+
+      in_off += sizeof (sect);
+      out_off += sizeof (sect);
+      sz -= sizeof (sect);
+
+      ++i;
+    }
+
+  inh_slack = aligned_inh_size - inh_size;
+  outh_slack = aligned_outh_size - outh_size;
+  if (inh_slack < outh_slack)
+    {
+      copy (in, out, inh_slack, in_off, out_off);
+      pad (out, outh_slack - inh_slack);
+    }
+  else
+    {
+      copy (in, out, outh_slack, in_off, out_off);
+      skip (in, inh_slack - outh_slack);
+    }
+
+  in_off += inh_slack;
+  out_off += outh_slack;
+  sz -= inh_slack;
+  copy (in, out, sz, in_off, out_off);
+}
+
+static void
+copy_ne (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off,
+	 uint_le32_t ne_magic_le)
+{
+  switch (leh32 (ne_magic_le))
+    {
+    default:
+      copy (in, out, sz, in_off, out_off);
+      break;
+
+    case 0x00004550:  /* "PE", (?) little endian */
+      copy_pe (in, out, sz, in_off, out_off);
+    }
 }
 
 static void
@@ -462,12 +662,19 @@ stubify (void)
       copy (in2, out, stub_sz, 0, 0);
     }
   fclose (in2);
+  in2 = NULL;
 
   if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
     error ("cannot write payload magic number");
-  copy (in1, out, tot1_sz - magic_len, magic_len, magic_len);
+
   if (renew)
-    pad (out, new_tot_sz - stub_sz - tot1_sz);
+    {
+      copy (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len);
+      pad (out, new_tot_sz - stub_sz - tot1_sz);
+    }
+  else
+    copy_ne (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len,
+	     ne_magic_le);
 
   close_out (out);
   fclose (in1);
@@ -512,8 +719,8 @@ unstubify (void)
   out = open_out (out_path);
   if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
     error ("cannot write payload magic number");
-  copy (in1, out, tot_sz - stub_sz - magic_len,
-	stub_sz + magic_len, (uint32_t) 0);
+  copy_ne (in1, out, tot_sz - stub_sz - magic_len,
+	   stub_sz + magic_len, (uint32_t) magic_len, ne_magic_le);
 
   close_out (out);
   fclose (in1);
