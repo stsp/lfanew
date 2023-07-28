@@ -33,9 +33,9 @@ m4_define([AT_LFANEW_A2OUT],[a2.exe])
 dnl $1 = text of program to assemble
 m4_define([AT_LFANEW_ASM],[dnl
 AT_DATA([AT_LFANEW_AIN],[$1])
-AT_CHECK([[$NASM -o]AT_LFANEW_AOUT AT_LFANEW_AIN],,[[ignore]],[[ignore]])])
+AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AIN],,[[ignore]],[[ignore]])])
 
 dnl $1 = program to run
 dnl $2 = expected output
 m4_define([AT_LFANEW_DOSRUN],[dnl
-AT_CHECK([[$DOSRUN] $1 [| $DOS2UNIX]],,[$2],[])])
+AT_CHECK([["$DOSRUN"] $1 [| "$DOS2UNIX"]],,[$2],[])])

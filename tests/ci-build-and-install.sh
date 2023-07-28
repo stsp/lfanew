@@ -38,7 +38,7 @@ cd build.tmp
 unset CC
 ../configure --prefix="$inst_prefix" ${1+"$@"} || \
   (cat config.log */config.log && exit 1)
-make
-make install
+${MAKE-make}
+${MAKE-make} install
 # This also invokes GNU Autotest to generate the test suite script.
-make listcheck
+${MAKE-make} listcheck

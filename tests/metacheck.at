@@ -28,15 +28,15 @@ dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 AT_BANNER([[Basic sanity (meta-)checks on the test setup]])
 
 AT_SETUP([[dos2unix]])
-AT_CHECK([[$DOS2UNIX --version]],,[[ignore]],[[ignore]])
+AT_CHECK([["$DOS2UNIX" --version]],,[[ignore]],[[ignore]])
 AT_CLEANUP
 
 AT_SETUP([[nasm]])
-AT_CHECK([[$NASM -h]],,[[ignore]],[[ignore]])
+AT_CHECK([["$NASM" -h]],,[[ignore]],[[ignore]])
 AT_CLEANUP
 
 AT_SETUP([[MS-DOS emulator]])
-AT_CHECK([[$DOSRUN || $DOSRUN -h]],,[[ignore]],[[ignore]])
+AT_CHECK([["$DOSRUN" || "$DOSRUN" -h]],,[[ignore]],[[ignore]])
 AT_LFANEW_ASM([[
 	org	0x0100
 	mov	ax, 0x4c00

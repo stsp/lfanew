@@ -32,5 +32,5 @@
 set -e -v
 cd build.tmp
 unset CC
-make check TESTSUITEFLAGS="$*" \
+${MAKE-make} check TESTSUITEFLAGS="$*" \
   || (cat tests/testsuite.log && exit 1)

@@ -22,14 +22,33 @@
 # Integration.
 
 skip_tags: true
-image: Ubuntu2004
+image:
+  - Visual Studio 2022
+  - Ubuntu2004
 environment:
   matrix:
-    - autoconf:
-install:
-  - sudo add-apt-repository -r -y ppa:rabbitmq/rabbitmq-erlang
-  - sudo ./tests/ci-base-setup.sh
+    - AUTOCONF:
+for:
+  -
+    matrix:
+      except:
+        - image: Ubuntu2004
+    environment:
+      OS: windows
+    install:
+      - set PATH=c:\cygwin64\bin;%PATH%
+      - bash ./tests/ci-base-setup.sh
+  -
+    matrix:
+      only:
+        - image: Ubuntu2004
+    environment:
+      OS: linux
+      MAKE: make
+    install:
+      - sudo add-apt-repository -r -y ppa:rabbitmq/rabbitmq-erlang
+      - sudo bash ./tests/ci-base-setup.sh
 build_script:
-  - ./tests/ci-build-and-install.sh $autoconf
+  - bash -c "./tests/ci-build-and-install.sh $AUTOCONF"
 test_script:
-  - ./tests/ci-check.sh
+  - bash ./tests/ci-check.sh
