@@ -472,6 +472,8 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
   i = 0;
   while (i != num_sects)
     {
+      ++i;
+
       if (sizeof (sect) > sz)
 	error ("PE section header #%#x overshoots file end", (ui_t) i);
 
@@ -488,8 +490,6 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
       in_off += sizeof (sect);
       out_off += sizeof (sect);
       sz -= sizeof (sect);
-
-      ++i;
     }
 
   inh_slack = aligned_inh_size - inh_size;
