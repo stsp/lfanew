@@ -20,23 +20,26 @@ https://ci.appveyor.com/project/tkchia/lfanew/branch/main[image:https://ci.appve
 == Tool
 
 :fn-pietrek-19: footnote:pietrek-19[M. Pietrek.  Inside Windows: an in-depth look into the Win32 Portable Executable file format.  MSDN Magazine, Feb 2002.  https://learn.microsoft.com/en-us/archive/msdn-magazine/2002/february/inside-windows-win32-portable-executable-file-format-in-detail.]
+:fn-microsoft-23: footnote:microsoft-23[Microsoft Corporation.  PE Format.  Microsoft Learn, 24 Mar 2023.  https://learn.microsoft.com/en-us/windows/win32/debug/pe-format.  Archived on 26 Jul 2023 at https://web.archive.org/web/20230726221442/https://learn.microsoft.com/en-us/windows/win32/debug/pe-format.]
 
 Usage:
 
 * ``lfanew`` [``-k``] ``-o`` __out-stub-file__ __in-stub-file__
-* ``lfanew -S`` [``-k``] [``-p``] ``-o`` __out-fat-file__ __in-payload-file__ __in-stub-file__
-* ``lfanew -U`` [``-k``] ``-o`` __out-payload-file__ __in-fat-file__
+* ``lfanew -S`` [``-kp``] ``-o`` __out-fat-file__ __in-payload-file__ __in-stub-file__
+* ``lfanew -U`` [``-kp``] ``-o`` __out-payload-file__ __in-fat-file__
 
 Operating modes:
 
 * On default, `lfanew` adds a `.e_lfanew` header field{fn-pietrek-19} to an old-style `MZ` executable program, so that the program can potentially be used as an MS-DOS loader stub for a modern "new executable" format.
-* `-S` ("stubify"): tells `lfanew` to create a fat binary by combining a stub with a "new executable" payload.
-* `-U` ("unstubify"): tells `lfanew` to extract the "new executable" payload contained inside a fat binary.
+* `-S` ("stubify"): tells `lfanew` to create a fat binary by combining an `MZ` stub with a "new executable" payload.
+* `-U` ("unstubify"): tells `lfanew` to extract the "new executable" payload contained inside a fat binary, removing any `MZ` stub.
 
 Options:
 
 * `-k` ("keep"): says to keep the output file in case of an error, rather than delete it.
-* `-p` ("pages"): says to derive the stub size from `.e_cp` and `.e_cblp`, rather than from `.e_lfanew`.   If the stub has a pre-existing `.e_lfanew` field, `-p` also adjusts `.e_lfanew` to point to the end of the payload.
+* `-p` ("pages"): for `-S` or `-U`, says to derive the stub size from `.e_cp` and `.e_cblp`, rather than from `.e_lfanew`.
+
+`lfanew` can add a stub to a Microsoft Portable Executable (`PE`){fn-microsoft-23} payload, if there is enough RVA space before the `PE` sections to accommodate the stub (and `PE` headers).  You will likely need to unstubify a `PE` program before attaching it to a different stub.
 
 == Code library
 

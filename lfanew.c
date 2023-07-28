@@ -57,7 +57,7 @@ typedef enum
 } op_mode_t;
 
 static op_mode_t op_mode = MODE_DEFAULT;
-static bool keep_output = false, force_cp_cblp = false;
+static bool keep_output = false, force_cp_cblp = false, unsafe = false;
 static const char *me = NULL, *out_path = NULL,
 		  *in1_path = NULL, *in2_path = NULL;
 static FILE *in1 = NULL, *in2 = NULL, *out = NULL;
@@ -70,9 +70,9 @@ usage (void)
 	     "  # to add .e_lfanew\n"
 	     "  %s [-k] -o OUT-STUB-FILE IN-STUB-FILE\n"
 	     "  # to stubify\n"
-	     "  %s -S [-k] [-p] -o OUT-FAT-FILE IN-PAYLOAD-FILE IN-STUB-FILE\n"
+	     "  %s -S [-kp] -o OUT-FAT-FILE IN-PAYLOAD-FILE IN-STUB-FILE\n"
 	     "  # to unstubify\n"
-	     "  %s -U [-k] -o OUT-PAYLOAD-FILE IN-FAT-FILE\n",
+	     "  %s -U [-kp] -o OUT-PAYLOAD-FILE IN-FAT-FILE\n",
      me, me, me);
   exit (1);
 }
@@ -132,7 +132,7 @@ static void
 parse_args (int argc, char **argv)
 {
   int opt;
-  while ((opt = getopt (argc, argv, "ko:pSU")) != -1)
+  while ((opt = getopt (argc, argv, "ko:pSU_:")) != -1)
     {
       switch (opt)
 	{
@@ -151,6 +151,13 @@ parse_args (int argc, char **argv)
 	case 'U':
 	  op_mode = MODE_UNSTUBIFY;
 	  break;
+	case '_':
+	  if (optarg[0] == '-' && optarg[1] == 0)
+	    {
+	      unsafe = true;
+	      break;
+	    }
+	  /* FALLTHRU */
 	default:
 	  usage ();
 	}
@@ -250,7 +257,8 @@ process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
     {
       mz_sz = (long) (cp - 1) * MZ_PG_SZ + cblp;
       if (cblp >= MZ_PG_SZ)
-	warn ("e_cblp == %#x > %#x looks bogus", (ui_t) cblp, (ui_t) MZ_PG_SZ);
+	warn ("MZ e_cblp == %#x > %#x looks bogus",
+	      (ui_t) cblp, (ui_t) MZ_PG_SZ);
     }
 
   cparhdr = leh16 (pmz->e_cparhdr);
@@ -274,8 +282,13 @@ process_ne_magic (FILE *in, uint_le32_t *p_ne_magic_le, const char *what)
 {
   size_t magic_len = sizeof (*p_ne_magic_le);
   uint16_t ne_magic_lo;
+
   if (fread (p_ne_magic_le, 1, magic_len, in) != magic_len)
     error ("cannot read payload magic number");
+
+  if (unsafe)
+    return;
+
   ne_magic_lo = leh32lo (*p_ne_magic_le);
   switch (ne_magic_lo)
     {
@@ -354,12 +367,14 @@ static void
 copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 {
   uint32_t inh_size, aligned_inh_size, outh_size, aligned_outh_size,
-	   inh_slack, outh_slack, file_align, adjust, code_base, data_base;
+	   inh_slack, outh_slack, file_align, adjust;
   pe_img_fil_hdr_t fhdr;
   pe_img_opt_hdr_t ophdr;
-  uint16_t ophdr_size, ophdr_magic, num_sects, i;
-  pe_data_dir_t *ent;
+  uint16_t ophdr_size, ophdr_magic, num_sects;
+  uint32_t min_used_rva = UINT32_MAX, rva;
+  unsigned i;
   pe_sect_hdr_t sect;
+  bool pe32plus = false;
 
   if (sizeof (fhdr) > sz)
     error ("PE COFF file header overshoots file end");
@@ -417,18 +432,6 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
   ophdr.h.SizeOfHeaders = hle32 (aligned_outh_size);
   adjust = aligned_outh_size - aligned_inh_size;
 
-  /*
-   * We need enough virtual address space between {ImageBase} & {ImageBase
-   * + BaseOfCode} to accommodate all the headers, i.e.  MZ stub, PE headers,
-   * & section headers.  For now, simply error out if the BaseOfCode RVA is
-   * too small.  (Alternatively, we could try to adjust all the RVAs in the
-   * program upwards, but this is hard to do right & not a lot of fun.)
-   */
-  code_base = leh32 (ophdr.h.BaseOfCode);
-  if (code_base < aligned_outh_size)
-    error ("PE BaseOfCode too small for output PE headers, %#lx < %#lx",
-	   (ul_t) code_base, (ul_t) aligned_outh_size);
-
   ophdr_magic = leh16 (ophdr.h.Magic);
   switch (ophdr_magic)
     {
@@ -440,26 +443,51 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	error ("long PE32 header unsupported, %#x > %#x",
 	       (ui_t) ophdr_size, (ui_t) sizeof (ophdr.h32));
 
-      data_base = leh32 (ophdr.h32.BaseOfData);
-      if (data_base < aligned_outh_size)
-	error ("PE32 BaseOfData too small for output PE headers: %#lx < %#lx",
-	       (ul_t) data_base, (ul_t) aligned_outh_size);
+      for (i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; ++i)
+	{
+	  pe_data_dir_t *ent = &ophdr.h32.DataDirectory[i];
+	  switch (i)
+	    {
+	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
+	      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
+		error ("PE32 debug table unsupported");
+	      break;
 
-      ent = &ophdr.h32.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
-      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
-	error ("PE32 debug table unsupported");
+	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
+	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+	      break;
 
-      ent = &ophdr.h32.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
-      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+	    default:
+	      rva = leh32 (ent->VirtualAddress);
+	      if (rva != 0 && min_used_rva > rva)
+		min_used_rva = rva;
+	    }
+	}
       break;
 
     case IMAGE_NT_OPTIONAL_HDR64_MAGIC:  /* PE32+ */
-      ent = &ophdr.h64.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
-      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
-	error ("PE32 debug table unsupported");
+      pe32plus = true;
 
-      ent = &ophdr.h64.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
-      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+      for (i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; ++i)
+	{
+	  pe_data_dir_t *ent = &ophdr.h64.DataDirectory[i];
+	  switch (i)
+	    {
+	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
+	      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
+		error ("PE32+ debug table unsupported");
+	      break;
+
+	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
+	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+	      break;
+
+	    default:
+	      rva = leh32 (ent->VirtualAddress);
+	      if (rva != 0 && rva < min_used_rva)
+		min_used_rva = rva;
+	    }
+	}
     }
 
   if (fwrite (&ophdr, ophdr_size, 1, out) != 1)
@@ -480,6 +508,12 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
       if (fread (&sect, sizeof (sect), 1, in) != 1)
 	error_with_errno ("cannot read PE section header #%#x", (ui_t) i);
 
+      rva = leh32 (sect.VirtualAddress);
+      if (rva == 0)
+	warn ("section #%#x has suspicious RVA of 0", (ui_t) i);
+      else if (rva < min_used_rva)
+	min_used_rva = rva;
+
       pe_adjust_off (&sect.PointerToRawData, aligned_inh_size, adjust);
       pe_adjust_off (&sect.PointerToRelocations, aligned_inh_size, adjust);
       pe_adjust_off (&sect.PointerToLinenumbers, aligned_inh_size, adjust);
@@ -490,6 +524,30 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
       in_off += sizeof (sect);
       out_off += sizeof (sect);
       sz -= sizeof (sect);
+    }
+
+  /*
+   * We need enough virtual address space between {ImageBase} & {ImageBase
+   * + minimum used RVA} to accommodate all the headers, i.e. MZ stub, PE
+   * headers, & section headers.  For now, simply error out if the
+   * BaseOfCode RVA is too small.  (Alternatively, we could try to adjust
+   * all the RVAs in the program upwards, but this is hard to do right & not
+   * a lot of fun.)
+   */
+  if (! unsafe && min_used_rva < aligned_outh_size)
+    error ("not enough RVA space for output PE headers, %#lx < %#lx",
+	   (ul_t) min_used_rva, (ul_t) aligned_outh_size);
+
+  rva = leh32 (ophdr.h.BaseOfCode);
+  if (rva < min_used_rva)
+    warn ("PE BaseOfCode == %#lx < %#lx looks bogus",
+	  (ul_t) rva, (ul_t) min_used_rva);
+  if (! pe32plus)
+    {
+      rva = leh32 (ophdr.h32.BaseOfData);
+      if (rva < min_used_rva)
+	warn ("PE32 BaseOfData == %#lx < %#lx looks bogus",
+	      (ul_t) rva, (ul_t) min_used_rva);
     }
 
   inh_slack = aligned_inh_size - inh_size;
@@ -605,11 +663,10 @@ stubify (void)
 {
   uint_le32_t ne_magic_le;
   size_t magic_len = sizeof (ne_magic_le);
-  ul_t tot1_sz, tot2_sz, new_tot_sz;
+  ul_t tot1_sz, tot2_sz;
   mz_hdr_t mz2;
   uint16_t lfarlc, oem;
   uint32_t mz2_sz, stub_sz, lfanew = 0;
-  bool renew = false;
 
   in1 = open_in (in1_path);
   tot1_sz = size_it (in1);
@@ -636,45 +693,22 @@ stubify (void)
 		error ("output file will be too large, "
 		       "%#lx + %#lx > 4 GiB - %#x",
 		       (ul_t) stub_sz, tot1_sz, (ui_t) MZ_PARA_SZ);
-	      else
-		{
-		  new_tot_sz = stub_sz + (uint32_t) tot1_sz;
-		  new_tot_sz = (new_tot_sz + MZ_PARA_SZ - 1)
-			       & -(ul_t) MZ_PARA_SZ;
-		  mz2.e_lfanew = hle32 (new_tot_sz);
-		  renew = true;
-		}
 	    }
 	}
     }
 
   out = open_out (out_path);
 
-  if (renew)
-    {
-      if (fwrite (&mz2, 1, MZ_LFARLC_NEW, out) != MZ_LFARLC_NEW)
-	error ("cannot write MZ header");
-      copy (in2, out, stub_sz - MZ_LFARLC_NEW, MZ_LFARLC_NEW, MZ_LFARLC_NEW);
-    }
-  else
-    {
-      rewind (in2);
-      copy (in2, out, stub_sz, 0, 0);
-    }
+  rewind (in2);
+  copy (in2, out, stub_sz, 0, 0);
   fclose (in2);
   in2 = NULL;
 
   if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
     error ("cannot write payload magic number");
 
-  if (renew)
-    {
-      copy (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len);
-      pad (out, new_tot_sz - stub_sz - tot1_sz);
-    }
-  else
-    copy_ne (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len,
-	     ne_magic_le);
+  copy_ne (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len,
+	   ne_magic_le);
 
   close_out (out);
   fclose (in1);
@@ -701,7 +735,7 @@ unstubify (void)
       if (oem != 0 && fread (&mz.e_res, oem, 1, in1) == 1)
 	{
 	  lfanew = leh32 (mz.e_lfanew);
-	  if (lfanew != 0 && lfanew <= tot_sz)
+	  if (lfanew != 0 && lfanew <= tot_sz && ! force_cp_cblp)
 	    stub_sz = lfanew;
 	}
     }
