@@ -529,10 +529,10 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
   /*
    * We need enough virtual address space between {ImageBase} & {ImageBase
    * + minimum used RVA} to accommodate all the headers, i.e. MZ stub, PE
-   * headers, & section headers.  For now, simply error out if the
-   * BaseOfCode RVA is too small.  (Alternatively, we could try to adjust
-   * all the RVAs in the program upwards, but this is hard to do right & not
-   * a lot of fun.)
+   * headers, & section headers.  For now, simply error out if the minimum
+   * used RVA is too small.  (Alternatively, we could try to adjust all the
+   * RVAs in the program upwards, but this is hard to do right & not a lot
+   * of fun.)
    */
   if (! unsafe && min_used_rva < aligned_outh_size)
     error ("not enough RVA space for output PE headers, %#lx < %#lx",
