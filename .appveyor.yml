@@ -36,7 +36,7 @@ for:
     environment:
       OS: windows
     install:
-      - set PATH=c:\cygwin64\bin;%PATH%
+      - set PATH=c:\cygwin64\bin;%CD%\msdos\binary\i86_x64;%PATH%
       - bash ./tests/ci-base-setup.sh
   -
     matrix:

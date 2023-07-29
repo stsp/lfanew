@@ -1,3 +1,10 @@
+lfanew (20230729-build20230729-1~@distro@) @distro@; urgency=medium
+
+  * Improve & correct comments.
+  * AppVeyor CI: try to build on Microsoft Windows too.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Sat, 29 Jul 2023 10:34:10 +0000
+
 lfanew (20230728-build20230728-1~@distro@) @distro@; urgency=medium
 
   * lfanew.c:

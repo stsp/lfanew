@@ -29,6 +29,7 @@ m4_define([AT_LFANEW_TOOL],["$abs_top_builddir"/lfanew])
 m4_define([AT_LFANEW_AIN],[a.asm])
 m4_define([AT_LFANEW_AOUT],[a.exe])
 m4_define([AT_LFANEW_A2OUT],[a2.exe])
+m4_define([AT_LFANEW_TMP],[a.tmp])
 
 dnl $1 = text of program to assemble
 m4_define([AT_LFANEW_ASM],[dnl
@@ -38,4 +39,5 @@ AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AIN],,[[ignore]],[[ignore]])])
 dnl $1 = program to run
 dnl $2 = expected output
 m4_define([AT_LFANEW_DOSRUN],[dnl
-AT_CHECK([["$DOSRUN"] $1 [| "$DOS2UNIX"]],,[$2],[])])
+AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
+	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[])])
