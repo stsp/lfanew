@@ -28,6 +28,7 @@
 DESTDIR =
 abs_srcdir = @abs_srcdir@
 srcdir = @srcdir@
+objdir = .
 VPATH = $(srcdir)
 mkinstalldirs = $(SHELL) $(srcdir)/mkinstalldirs
 
@@ -42,14 +43,16 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 
 CC = @CC@
-CPPFLAGS = @CPPFLAGS@ -I$(srcdir)
+CPPFLAGS = @CPPFLAGS@ -I$(srcdir)/h -I$(objdir)/h
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
 OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 
 PROGRAMS = lfanew$(EXEEXT)
-HEADERS = nexgen/mzendian.h nexgen/mzhdr.h
+HEADERS = h/lfanew/_version.h \
+	  h/nexgen/mzendian.h \
+	  h/nexgen/mzhdr.h
 
 default: $(PROGRAMS) $(HEADERS)
 .PHONY: default
@@ -59,14 +62,14 @@ all: default
 
 install: $(PROGRAMS) $(HEADERS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir) \
-			 $(sort $(dir $(HEADERS:%=$(DESTDIR)$(includedir)/%)))
+	  $(sort $(dir $(HEADERS:h/%=$(DESTDIR)$(includedir)/%)))
 	$(INSTALL_PROGRAM) $(filter-out %.h,$^) $(DESTDIR)$(bindir)
 	set -e; \
-	for h in $(HEADERS); do \
-	  if test -f "$$h"; then \
-	    $(INSTALL_DATA) "$$h" $(DESTDIR)$(includedir)/"$$h"; \
+	for h in $(HEADERS:h/%=%); do \
+	  if test -f h/"$$h"; then \
+	    $(INSTALL_DATA) h/"$$h" $(DESTDIR)$(includedir)/"$$h"; \
 	  else \
-	    $(INSTALL_DATA) $(srcdir)/"$$h" $(DESTDIR)$(includedir)/"$$h"; \
+	    $(INSTALL_DATA) $(srcdir)/h/"$$h" $(DESTDIR)$(includedir)/"$$h"; \
 	  fi; \
 	done
 .PHONY: install

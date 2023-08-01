@@ -75,4 +75,6 @@ AC_PATH_PROGS(DOSRUN, [emu2 86sim msdos], /bin/false)
 AC_SUBST([lfanew_ackhost])
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile tests/atlocal])
+AC_DEFINE_UNQUOTED([_LFANEW_VERSION],[${PACKAGE_VERSION}L])
+AC_CONFIG_HEADERS([h/lfanew/_version.h])
 AC_OUTPUT

@@ -1,3 +1,9 @@
+lfanew (20230801-build20230801-1~@distro@) @distro@; urgency=medium
+
+  * Add _LFANEW_VERSION macro; internally reorganize headers.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Tue, 01 Aug 2023 10:42:05 +0000
+
 lfanew (20230729-build20230729-1~@distro@) @distro@; urgency=medium
 
   * Improve & correct comments.

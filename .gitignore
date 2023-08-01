@@ -2,4 +2,4 @@
 *.[oa]
 *.exe
 autom4te.cache
-lfanew
+/lfanew

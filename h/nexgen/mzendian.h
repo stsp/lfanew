@@ -31,6 +31,7 @@
 #define _LFANEW_NEXGEN_MZENDIAN_H
 
 #include <stdint.h>
+#include <lfanew/_version.h>
 
 typedef struct
   {

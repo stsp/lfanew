@@ -30,6 +30,7 @@
 #ifndef _LFANEW_NEXGEN_MZHDR_H
 #define _LFANEW_NEXGEN_MZHDR_H
 
+#include <lfanew/_version.h>
 #include <nexgen/mzendian.h>
 
 typedef struct
