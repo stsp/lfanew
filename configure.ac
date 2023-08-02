@@ -71,6 +71,15 @@ dnl These programs are only used when running tests, but look for them anyway.
 AC_PATH_PROG(DOS2UNIX, dos2unix, /bin/false)
 AC_PATH_PROG(NASM, nasm, /bin/false)
 AC_PATH_PROGS(DOSRUN, [emu2 86sim msdos], /bin/false)
+case "$host" in
+  *-cygwin* | *-mingw32* | *-mingw64* | *-msys*)
+    WINRUN=
+    AC_SUBST([WINRUN])
+    ;;
+  *)
+    AC_PATH_PROG(WINRUN, wine, [])
+    ;;
+esac
 
 AC_SUBST([lfanew_ackhost])
 AC_CONFIG_TESTDIR([tests])

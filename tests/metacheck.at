@@ -35,11 +35,17 @@ AT_SETUP([[nasm]])
 AT_CHECK([["$NASM" -h]],,[[ignore]],[[ignore]])
 AT_CLEANUP
 
-AT_SETUP([[MS-DOS emulator]])
+AT_SETUP([[MS-DOS program runner]])
 AT_LFANEW_ASM([[
 	org	0x0100
 	mov	ax, 0x4c00
 	int	0x21
 ]])
 AT_LFANEW_DOSRUN([AT_LFANEW_AOUT],[])
+AT_CLEANUP
+
+AT_SETUP([[Windows PE32 program runner]])
+AT_LFANEW_ASM([AT_LFANEW_PE32TEST])
+AT_LFANEW_WINRUN([AT_LFANEW_AOUT],[[hello from PE32
+]],[[ignore]])
 AT_CLEANUP

@@ -1,4 +1,4 @@
-dnl Copyright (c) 2023 TK Chia
+fdnl Copyright (c) 2023 TK Chia
 dnl
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted provided that the following conditions are
@@ -26,18 +26,303 @@ dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 m4_define([AT_LFANEW_TOOL],["$abs_top_builddir"/lfanew])
-m4_define([AT_LFANEW_AIN],[a.asm])
-m4_define([AT_LFANEW_AOUT],[a.exe])
-m4_define([AT_LFANEW_A2OUT],[a2.exe])
-m4_define([AT_LFANEW_TMP],[a.tmp])
+m4_define([AT_LFANEW_AIN],[./a.asm])
+m4_define([AT_LFANEW_AOUT],[./a.exe])
+m4_define([AT_LFANEW_A2OUT],[./a2.exe])
+m4_define([AT_LFANEW_TMP],[./a.tmp])
 
 dnl $1 = text of program to assemble
 m4_define([AT_LFANEW_ASM],[dnl
 AT_DATA([AT_LFANEW_AIN],[$1])
-AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AIN],,[[ignore]],[[ignore]])])
+AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AIN],,[[ignore]],[[ignore]])
+AT_CHECK([[chmod u+x] AT_LFANEW_AOUT],,[[ignore]],[[ignore]])])
 
 dnl $1 = program to run
-dnl $2 = expected output
+dnl $2 = expected stdout output
+dnl $3 = expected stderr output
 m4_define([AT_LFANEW_DOSRUN],[dnl
 AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
-	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[])])
+	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])])
+
+dnl $1 = program to run
+dnl $2 = expected stdout output
+dnl $3 = expected stderr output
+m4_define([AT_LFANEW_WINRUN],[dnl
+if test "" = "$WINRUN"; then
+  AT_CHECK([$1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])
+else
+  AT_CHECK([["$WINRUN"] $1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])
+fi])
+
+dnl old-style MZ stub with only .e_cblp & .e_cp
+m4_define([AT_LFANEW_MZSTUB],[[
+%define MZ_PG_SZ	0x200
+%define MZ_PARA_SZ	0x10
+%define MZ_PSP_SZ	0x100
+mz_start:
+	dw	0x5a4d						; .e_magic
+	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
+	dw	(mz_end - mz_start + MZ_PG_SZ - 1) / MZ_PG_SZ	; .e_cp
+	dw	0						; .e_crlc
+	dw	(mz_hdr_end - mz_start) / MZ_PARA_SZ		; .e_cparhdr
+	dw	0						; .e_minalloc
+	dw	-1						; .e_maxalloc
+	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
+	dw	0						; .e_csum
+	dw	mz_entry					; .e_ip
+	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
+	dw	mz_relocs					; .e_lfarlc
+	dw	0						; .e_ovno
+mz_relocs:
+	alignb	MZ_PARA_SZ
+mz_hdr_end:
+mz_msg:
+	db	"world, hello",13,10,"$"
+mz_entry:
+	push	cs
+	pop	ds
+	mov	ah, 9
+	mov	dx, mz_msg
+	int	0x21
+	mov	ax, 0x4c00
+	int	0x21
+mz_end:
+]])
+
+dnl MZ stub with .e_cblp, .e_cp, & .e_lfanew
+m4_define([AT_LFANEW_MZSTUBNEW],[[
+%define MZ_PG_SZ	0x200
+%define MZ_PARA_SZ	0x10
+%define MZ_PSP_SZ	0x100
+%define MZ_LFARLC_NEW	0x3c
+mz_start:
+	dw	0x5a4d						; .e_magic
+	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
+	dw	(mz_end - mz_start + MZ_PG_SZ - 1) / MZ_PG_SZ	; .e_cp
+	dw	0						; .e_crlc
+	dw	(mz_hdr_end - mz_start) / MZ_PARA_SZ		; .e_cparhdr
+	dw	0						; .e_minalloc
+	dw	-1						; .e_maxalloc
+	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
+	dw	0						; .e_csum
+	dw	mz_entry					; .e_ip
+	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
+	dw	MZ_LFARLC_NEW					; .e_lfarlc
+	dw	0						; .e_ovno
+	times (MZ_LFARLC_NEW - ($ - mz_start)) db 0
+	dd	pe_hdr_start					; .e_lfanew
+mz_hdr_end:
+mz_msg:
+	db	"world, hello",13,10,"$"
+mz_entry:
+	push	cs
+	pop	ds
+	mov	ah, 9
+	mov	dx, mz_msg
+	int	0x21
+	mov	ax, 0x4c00
+	int	0x21
+mz_end:
+]])
+
+dnl MZ stub, PE COFF file header, PE optional headers, & PE section headers
+m4_define([AT_LFANEW_PEHDRS],[AT_LFANEW_MZSTUBNEW[
+%define IMAGE_FILE_MACHINE_I386			0x014c
+%define IMAGE_FILE_EXECUTABLE_IMAGE		0x0002
+%define IMAGE_FILE_32BIT_MACHINE		0x0100
+%define IMAGE_FILE_DEBUG_STRIPPED		0x0200
+%define IMAGE_NT_OPTIONAL_HDR32_MAGIC		0x010b
+%define IMAGE_SUBSYSTEM_WINDOWS_CUI		3
+%define IMAGE_DLLCHARACTERISTICS_NX_COMPAT	0x0100
+%define IMAGE_SCN_CNT_CODE			0x00000020
+%define IMAGE_SCN_CNT_INITIALIZED_DATA		0x00000040
+%define IMAGE_SCN_MEM_EXECUTE			0x20000000
+%define IMAGE_SCN_MEM_READ			0x40000000
+%define IMAGE_SCN_MEM_WRITE			0x80000000
+; These are configurable.
+%define PE_SECT_ALIGN		0x1000
+%define PE_FILE_ALIGN		0x0200
+%define round_up(x, y)		(((x) + (y) - 1) / (y) * (y))
+%define sect_up(x)		round_up ((x), PE_SECT_ALIGN)
+%define file_up(x)		round_up ((x), PE_FILE_ALIGN)
+%define PE_IMAGE_BASE		0x00400000
+%define PE_TEXT_RVA		0x00040000
+%define PE_TEXT_BASE		(PE_IMAGE_BASE + PE_TEXT_RVA)
+%define PE_DATA_RVA		(PE_TEXT_RVA \
+				 + sect_up (pe_data_start - pe_text_start))
+%define PE_DATA_BASE		(PE_IMAGE_BASE + PE_DATA_RVA)
+%define PE_STACK_RESERVE	0x00200000
+%define PE_STACK_COMMIT		PE_SECT_ALIGN
+%define PE_HEAP_RESERVE		0x00100000
+%define PE_HEAP_COMMIT		PE_SECT_ALIGN
+%define PE_HDRS_SIZE		(sxn_hdrs_end - mz_start)
+%define PE_TEXT_SIZE		(pe_text_end - pe_text_start)
+%define PE_DATA_SIZE		(pe_data_end - pe_data_start)
+%define text_va(off)		((off) - pe_text_start + PE_TEXT_BASE)
+%define text_rva(off)		((off) - pe_text_start + PE_TEXT_RVA)
+%define data_va(off)		((off) - pe_data_start + PE_DATA_BASE)
+%define data_rva(off)		((off) - pe_data_start + PE_DATA_RVA)
+	alignb	MZ_PARA_SZ
+pe_hdr_start:
+	dd	0x00004550				; .Signature
+	; = IMAGE_FILE_HEADER =
+	dw	IMAGE_FILE_MACHINE_I386			; .Machine
+	dw	(sxn_hdrs_end - sxn_hdrs_start) / 0x28	; .NumberOfSections
+	dd	0					; .TimeDateStamp
+	dd	0					; .PointerToSymbolTable
+	dd	0					; .NumberOfSymbols
+	dw	opt_hdr_end - opt_hdr_start		; .SizeOfOptionalHeader
+							; .Characteristics
+	dw	IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_32BIT_MACHINE \
+		| IMAGE_FILE_DEBUG_STRIPPED
+opt_hdr_start:
+	; = IMAGE_OPTIONAL_HEADER =
+	dw	IMAGE_NT_OPTIONAL_HDR32_MAGIC	; .Magic
+	db	2				; .MajorLinkerVersion
+	db	38				; .MinorLinkerVersion
+	dd	file_up (PE_TEXT_SIZE)		; .SizeOfCode
+						; .SizeOfInitializedData
+	dd	file_up (PE_TEXT_SIZE) + file_up (PE_DATA_SIZE)
+	dd	0				; .SizeOfUninitializedData
+	dd	text_rva (pe_entry)		; .AddressOfEntryPoint
+	dd	PE_TEXT_RVA			; .BaseOfCode
+	dd	PE_TEXT_RVA			; .BaseOfData
+	dd	PE_IMAGE_BASE			; .ImageBase
+	dd	PE_SECT_ALIGN			; .SectionAlignment
+	dd	PE_FILE_ALIGN			; .FileAlignment
+	dw	4				; .MajorOperatingSystemVersion
+	dw	0				; .MinorOperatingSystemVersion
+	dw	0, 0				; .{Maj, Min}orImageVersion
+	dw	3, 10				; .{Maj, Min}orSubsystemVersion
+	dd	0				; .Win32VersionValue
+						; .SizeOfImage
+	dd	PE_DATA_RVA + sect_up (PE_DATA_SIZE)
+	dd	file_up (PE_HDRS_SIZE)		; .SizeOfHeaders
+	dd	0				; .Checksum
+	dw	IMAGE_SUBSYSTEM_WINDOWS_CUI	; .Subsystem
+	dw	0				; .DllCharacteristics
+	dd	PE_STACK_RESERVE		; .SizeOfStackReserve
+	dd	PE_STACK_COMMIT			; .SizeOfStackCommit
+	dd	PE_HEAP_RESERVE			; .SizeOfHeapReserve
+	dd	PE_HEAP_COMMIT			; .SizeOfHeapCommit
+	dd	0				; .LoaderFlags
+						; .NumberOfRvasAndSizes
+	dd	(data_dir_end - data_dir_start) / 8
+	; = IMAGE_DATA_DIRECTORY[IMAGE_DIRECTORY_ENTRY_...] =
+data_dir_start:
+	dd	0, 0				; EXPORT
+						; IMPORT
+	dd	data_rva (pe_imports_start), pe_imports_end - pe_imports_start
+	dd	0, 0				; RESOURCE
+	dd	0, 0				; EXCEPTION
+	dd	0, 0				; SECURITY
+	dd	0, 0				; BASERELOC
+	dd	0, 0				; DEBUG
+	dd	0, 0				; ARCHITECTURE
+	dd	0, 0				; GLOBALPTR
+	dd	0, 0				; TLS
+	dd	0, 0				; LOAD_CONFIG
+	dd	0, 0				; BOUND_IMPORT
+						; IAT
+	dd	data_rva (pe_iat_start), pe_iat_end - pe_iat_start
+data_dir_end:
+opt_hdr_end:
+	; = IMAGE_SECTION_HEADER[] =
+sxn_hdrs_start:
+	db	".text", 0, 0, 0		; .Name[]
+	dd	PE_TEXT_SIZE			; .VirtualSize
+	dd	PE_TEXT_RVA			; .VirtualAddress
+	dd	file_up (PE_TEXT_SIZE)		; .SizeOfRawData
+	dd	pe_text_start			; .PointerToRawData
+	dd	0				; .PointerToRelocations
+	dd	0				; .PointerToLinenumbers
+	dw	0				; .NumberOfRelocations
+	dw	0				; .NumberOfLinenumbers
+						; .Characteristics
+	dd	IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA \
+		| IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ
+	db	".data", 0, 0, 0		; .Name[]
+	dd	PE_DATA_SIZE			; .VirtualSize
+	dd	PE_DATA_RVA			; .VirtualAddress
+	dd	file_up (PE_DATA_SIZE)		; .SizeOfRawData
+	dd	pe_data_start			; .PointerToRawData
+	dd	0				; .PointerToRelocations
+	dd	0				; .PointerToLinenumbers
+	dw	0				; .NumberOfRelocations
+	dw	0				; .NumberOfLinenumbers
+						; .Characteristics
+	dd	IMAGE_SCN_CNT_INITIALIZED_DATA \
+		| IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE
+sxn_hdrs_end:
+]])
+
+dnl a complete PE32 program
+m4_define([AT_LFANEW_PE32TEST],[AT_LFANEW_PEHDRS[
+	alignb	PE_FILE_ALIGN
+pe_text_start:
+pe_msg:
+	db	"hello from PE32", 13, 10
+pe_msg_end:
+pe_entry:
+	; From hh6d.nasm at https://github.com/pts/pts-tinype/
+	bits	32
+	push	byte -11
+	call	dword [data_va (__imp__GetStdHandle@4)]
+	push	eax
+	mov	ebx, esp
+	push	byte 0
+	push	ebx
+	push	byte (pe_msg_end-pe_msg)
+	push	dword text_va (pe_msg)
+	push	eax
+	call	dword [data_va (__imp__WriteFile@20)]
+	push	byte 0
+	call	dword [data_va (__imp__ExitProcess@4)]
+pe_text_end:
+	alignb   PE_FILE_ALIGN
+pe_data_start:
+pe_imports_start:
+	; = IMAGE_IMPORT_DESCRIPTOR =
+	dd	data_rva (pe_ilt_start)		; .OriginalFirstThunk
+	dd	0				; .TimeDateStamp
+	dd	0				; .ForwarderChain
+	dd	data_rva (pe_name_kernel32)	; .Name
+	dd	data_rva (pe_iat_start)		; .FirstThunk
+	dd	0, 0, 0, 0, 0
+pe_imports_end:
+pe_ilt_start:
+	dd	data_rva (pe_name_GetStdHandle)
+	dd	data_rva (pe_name_WriteFile)
+	dd	data_rva (pe_name_ExitProcess)
+	dd	0
+pe_iat_start:
+__imp__GetStdHandle@4:
+	dd	data_rva (pe_name_GetStdHandle)
+__imp__WriteFile@20:
+	dd	data_rva (pe_name_WriteFile)
+__imp__ExitProcess@4:
+	dd	data_rva (pe_name_ExitProcess)
+	dd	0
+pe_iat_end:
+	alignb	2
+pe_name_kernel32:
+	db	"kernel32.dll", 0
+	alignb	2
+pe_name_GetStdHandle:
+	; = IMAGE_IMPORT_BY_NAME =
+	dw	732				; .Hint
+	db	"GetStdHandle", 0		; .Name[]
+	alignb	2
+pe_name_WriteFile:
+	; = IMAGE_IMPORT_BY_NAME =
+	dw	1542				; .Hint
+	db	"WriteFile", 0			; .Name[]
+	alignb	2
+pe_name_ExitProcess:
+	; = IMAGE_IMPORT_BY_NAME =
+	dw	355				; .Hint
+	db	"ExitProcess", 0		; .Name[]
+pe_data_end:
+]])
