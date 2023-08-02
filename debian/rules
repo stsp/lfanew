@@ -5,6 +5,9 @@ export DH_VERBOSE = 1
 %:
 	exec dh $@ --parallel --builddirectory=build
 
+override_dh_autoreconf:
+	exec ./autogen.sh
+
 override_dh_auto_build-arch:
 	dh_auto_build -a -O--parallel -O--builddirectory=build
 

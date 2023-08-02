@@ -28,40 +28,7 @@ dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 AT_BANNER([[lfanew]])
 
 AT_SETUP([[Default mode (lfanew)]])
-m4_define([AT_LFANEW_MZSTUB],[[
-%define MZ_PG_SZ	0x200
-%define MZ_PARA_SZ	0x10
-%define MZ_PSP_SZ	0x100
-mz_start:
-	dw	0x5a4d						; .e_magic
-	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
-	dw	(mz_end - mz_start + MZ_PG_SZ - 1) / MZ_PG_SZ	; .e_cp
-	dw	0						; .e_crlc
-	dw	(mz_hdr_end - mz_start) / MZ_PARA_SZ		; .e_cparhdr
-	dw	0						; .e_minalloc
-	dw	-1						; .e_maxalloc
-	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
-	dw	0						; .e_csum
-	dw	start						; .e_ip
-	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
-	dw	mz_relocs					; .e_lfarlc
-	dw	0						; .e_ovno
-mz_relocs:
-	align	0x10
-mz_hdr_end:
-msg:
-	db	"world, hello",13,10,"$"
-start:
-	push	cs
-	pop	ds
-	mov	ah, 9
-	mov	dx, msg
-	int	0x21
-	mov	ax, 0x4c00
-	int	0x21
-mz_end:
-]])
-AT_LFANEW_ASM([AT_LFANEW_MZSTUB])
+AT_LFANEW_BINASM([AT_LFANEW_MZSTUB])
 AT_LFANEW_DOSRUN([AT_LFANEW_AOUT],[[world, hello
 ]])
 AT_CHECK([AT_LFANEW_TOOL [-o] AT_LFANEW_A2OUT AT_LFANEW_AOUT])
@@ -70,7 +37,8 @@ AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[world, hello
 AT_CLEANUP
 
 AT_SETUP([[Unstubify mode (lfanew -U)]])
-AT_LFANEW_ASM([AT_LFANEW_MZSTUB[
+
+AT_LFANEW_BINASM([AT_LFANEW_MZSTUB[
 mz2_start:
 	dw	0x5a4d						; .e_magic
 	dw	(mz2_end - mz2_start) % MZ_PG_SZ		; .e_cblp
@@ -81,22 +49,22 @@ mz2_start:
 	dw	-1						; .e_maxalloc
 	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
 	dw	0						; .e_csum
-	dw	start2 - mz2_start				; .e_ip
+	dw	mz2_entry - mz2_start				; .e_ip
 	dw	-((mz2_hdr_end - mz2_start) / MZ_PARA_SZ)	; .e_cs
 	dw	mz2_relocs - mz2_start				; .e_lfarlc
 	dw	0						; .e_ovno
 mz2_relocs:
 	times ((0x10 - ($ - mz2_start) % 0x10) % 0x10) db 0
 mz2_hdr_end:
-start2:
+mz2_entry:
 	push	cs
 	pop	ds
 	mov	ah, 9
-	mov	dx, msg2-mz2_start
+	mov	dx, mz2_msg - mz2_start
 	int	0x21
 	mov	ax, 0x4c00
 	int	0x21
-msg2:
+mz2_msg:
 	db	"quod erat demonstrandum",13,10,"$"
 mz2_end:
 ]])
@@ -105,4 +73,19 @@ AT_LFANEW_DOSRUN([AT_LFANEW_AOUT],[[world, hello
 AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT])
 AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[quod erat demonstrandum
 ]])
+
+AT_LFANEW_WINCC([[
+#include <unistd.h>
+int
+main (void)
+{
+  static const char msg[] = "hello as Windows\n";
+  write (1, msg, sizeof (msg) - 1);
+  return 0;
+}
+]])
+AT_LFANEW_WINRUN([AT_LFANEW_AOUT],[[hello as Windows
+]])
+AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT],,,[[ignore]])
+
 AT_CLEANUP

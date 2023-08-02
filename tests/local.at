@@ -26,18 +26,76 @@ dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 m4_define([AT_LFANEW_TOOL],["$abs_top_builddir"/lfanew])
-m4_define([AT_LFANEW_AIN],[a.asm])
-m4_define([AT_LFANEW_AOUT],[a.exe])
-m4_define([AT_LFANEW_A2OUT],[a2.exe])
-m4_define([AT_LFANEW_TMP],[a.tmp])
+m4_define([AT_LFANEW_AAIN],[./a.asm])
+m4_define([AT_LFANEW_ACIN],[./a.c])
+m4_define([AT_LFANEW_AOUT],[./a.exe])
+m4_define([AT_LFANEW_A2OUT],[./a2.exe])
+m4_define([AT_LFANEW_TMP],[./a.tmp])
 
 dnl $1 = text of program to assemble
-m4_define([AT_LFANEW_ASM],[dnl
-AT_DATA([AT_LFANEW_AIN],[$1])
-AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AIN],,[[ignore]],[[ignore]])])
+m4_define([AT_LFANEW_BINASM],[dnl
+AT_DATA([AT_LFANEW_AAIN],[$1])
+AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AAIN],,[[ignore]],[[ignore]])])
+
+dnl $1 = text of program to compile
+m4_define([AT_LFANEW_WINCC],[dnl
+AT_DATA([AT_LFANEW_ACIN],[$1])
+AT_CHECK([["$WINCC" $WINCFLAGS -o]AT_LFANEW_AOUT AT_LFANEW_ACIN],,dnl
+[[ignore]],[[ignore]])])
 
 dnl $1 = program to run
-dnl $2 = expected output
+dnl $2 = expected stdout output
+dnl $3 = expected stderr output
 m4_define([AT_LFANEW_DOSRUN],[dnl
 AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
-	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[])])
+	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])])
+
+dnl $1 = program to run
+dnl $2 = expected stdout output
+dnl $3 = expected stderr output
+dnl FIXME: Wine likes to dump informational message on stderr, even with
+dnl	   WINEDEBUG=-all.  For now just skip any checking of stderr output
+dnl	   if not running on Windows.
+m4_define([AT_LFANEW_WINRUN],[dnl
+if test -z "$WINRUN"; then
+  AT_CHECK([$1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])
+else
+  AT_CHECK([["$WINRUN"] $1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])
+fi])
+
+dnl old-style MZ stub with only .e_cblp & .e_cp
+m4_define([AT_LFANEW_MZSTUB],[[
+%define MZ_PG_SZ	0x200
+%define MZ_PARA_SZ	0x10
+%define MZ_PSP_SZ	0x100
+mz_start:
+	dw	0x5a4d						; .e_magic
+	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
+	dw	(mz_end - mz_start + MZ_PG_SZ - 1) / MZ_PG_SZ	; .e_cp
+	dw	0						; .e_crlc
+	dw	(mz_hdr_end - mz_start) / MZ_PARA_SZ		; .e_cparhdr
+	dw	0						; .e_minalloc
+	dw	-1						; .e_maxalloc
+	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
+	dw	0						; .e_csum
+	dw	mz_entry					; .e_ip
+	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
+	dw	mz_relocs					; .e_lfarlc
+	dw	0						; .e_ovno
+mz_relocs:
+	align	MZ_PARA_SZ
+mz_hdr_end:
+mz_msg:
+	db	"world, hello",13,10,"$"
+mz_entry:
+	push	cs
+	pop	ds
+	mov	ah, 9
+	mov	dx, mz_msg
+	int	0x21
+	mov	ax, 0x4c00
+	int	0x21
+mz_end:
+]])

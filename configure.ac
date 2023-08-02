@@ -66,6 +66,24 @@ AC_PROG_CC
 if test yes = "$GCC"; then
   CFLAGS="-Wall $CFLAGS"
 fi
+case "$host" in
+  *-cygwin* | *-mingw32* | *-mingw64* | *-msys* | *-windows* | *-winnt*)
+    : ${WINRUN=}
+    : ${WINCC="$CC"}
+    : ${WINCFLAGS="$CFLAGS -s"}
+    AC_SUBST([WINRUN])
+    AC_SUBST([WINCC])
+    AC_SUBST([WINCFLAGS])
+    ;;
+  *)
+    AC_PATH_PROG(WINRUN, wine, /bin/false)
+    AC_PATH_PROGS(WINCC, [i686-mingw32-gcc mingw32-gcc ]dnl
+			 [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], dnl
+			 /bin/false)
+    : ${WINCFLAGS="-Wall -Os -s"}
+    AC_SUBST([WINCFLAGS])
+    ;;
+esac
 
 dnl These programs are only used when running tests, but look for them anyway.
 AC_PATH_PROG(DOS2UNIX, dos2unix, /bin/false)

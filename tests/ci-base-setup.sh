@@ -50,5 +50,6 @@ case "$OS" in
     add-apt-repository -y ppa:tkchia/de-rebus \
      || apt-key add tests/ppa-pub-key.gpg.bin
     apt-get update -y
-    apt-get install -y dos2unix nasm emu2.dmsc autoconf make;;
+    apt-get install -y dos2unix nasm emu2.dmsc autoconf make wine \
+		       gcc-mingw-w64-i686;;
 esac

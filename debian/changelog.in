@@ -1,8 +1,10 @@
-lfanew (20230801-build20230801-1~@distro@) @distro@; urgency=medium
+lfanew (20230802-build20230802-2~@distro@) @distro@; urgency=medium
 
+  * lfanew.c: -S & -U: copy debug table for now, until I can figure out the
+    more correct thing to do.
   * Add _LFANEW_VERSION macro; internally reorganize headers.
 
- -- TK Chia <tkchia@users.noreply.github.com>  Tue, 01 Aug 2023 10:42:05 +0000
+ -- TK Chia <tkchia@users.noreply.github.com>  Wed, 02 Aug 2023 20:42:15 +0000
 
 lfanew (20230729-build20230729-1~@distro@) @distro@; urgency=medium
 

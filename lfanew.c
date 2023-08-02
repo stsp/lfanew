@@ -448,14 +448,15 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	  pe_data_dir_t *ent = &ophdr.h32.DataDirectory[i];
 	  switch (i)
 	    {
-	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
-	      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
-		error ("PE32 debug table unsupported");
-	      break;
-
 	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
 	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
 	      break;
+
+	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
+	      /* FIXME */
+	      if (leh32 (ent->VirtualAddress) != 0 && leh32 (ent->Size) != 0)
+		warn ("PE32 debug table unsupported; retaining anyway");
+	      /* FALLTHRU */
 
 	    default:
 	      rva = leh32 (ent->VirtualAddress);
@@ -473,14 +474,15 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	  pe_data_dir_t *ent = &ophdr.h64.DataDirectory[i];
 	  switch (i)
 	    {
-	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
-	      if (leh32 (ent->VirtualAddress) != 0 || leh32 (ent->Size) != 0)
-		error ("PE32+ debug table unsupported");
-	      break;
-
 	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
 	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
 	      break;
+
+	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
+	      /* FIXME */
+	      if (leh32 (ent->VirtualAddress) != 0 && leh32 (ent->Size) != 0)
+		warn ("PE32+ debug table unsupported; retaining anyway");
+	      /* FALLTHRU */
 
 	    default:
 	      rva = leh32 (ent->VirtualAddress);

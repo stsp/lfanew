@@ -28,3 +28,6 @@
 : ${DOS2UNIX='@DOS2UNIX@'}
 : ${NASM='@NASM@'}
 : ${DOSRUN='@DOSRUN@'}
+: ${WINRUN='@WINRUN@'}
+: ${WINCC='@WINCC@'}
+: ${WINCFLAGS='@WINCFLAGS@'}
