@@ -52,3 +52,6 @@ build_script:
   - bash -c "./tests/ci-build-and-install.sh $AUTOCONF"
 test_script:
   - bash ./tests/ci-check.sh
+artifacts:
+  - path: install.tmp
+    type: zip
