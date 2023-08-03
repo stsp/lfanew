@@ -67,6 +67,7 @@ Options:
 |      = | ``uint_le16_t`` .3+| Unaligned 16-, 32-, or 64-bit little endian binary numeral.  These types can be used directly inside a ``struct`` or ``union`` corresponding to a binary file structure, but should otherwise be treated as opaque.
 |      = | ``uint_le32_t``
 |      = | ``uint_le64_t``
+3+|
 |      2+| **``▗▚▚▚▚ <nexgen/mzhdr.h> ▞▞▞▞▖``**
 |      = | ``mz_hdr_t`` | ``MZ`` structure{fn-pietrek-19} at the beginning of an MS-DOS or Windows program.
 |===
@@ -77,6 +78,11 @@ Options:
 |===
 |Avail. <| Function <| Notes
 
+|     2+a| **``▗▚▚▚▚ <lfanew/io.h> ▞▞▞▞▖``**
+|      = | ``_binmode (``__handle__``);`` a|
+		* Sets the POSIX-style file __handle__ to do untranslated (binary) I/O — so that ``read`` and ``write`` calls with the __handle__ will not translate between LF and CRLF, nor specially interpret bytes that look like end-of-file indicators.
+		* Upon an error, this function returns -1 and sets ``errno``.
+3+|
 |     2+a| **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
 |      = | ``uint_le16_t hle16 (uint16_t``{nbsp}__x__``);`` .3+| Converts __x__ from host byte order to little endian.
 |      = | ``uint_le32_t hle32 (uint32_t``{nbsp}__x__``);``

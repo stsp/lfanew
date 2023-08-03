@@ -53,6 +53,14 @@ m4_define([AT_LFANEW_WINCC_REALIGN],[dnl
   AT_LFANEW_WINCC([$1],[[-Wl,--section-alignment=]$2])
 [fi]])
 
+dnl $1 = text of program to compile
+dnl $2 = extra compiler options
+m4_define([AT_LFANEW_HOSTCC],[dnl
+AT_DATA([AT_LFANEW_ACIN],[$1])
+AT_CHECK([[$CC $CPPFLAGS -I"$abs_top_builddir"/h -I"$abs_top_srcdir"/h] dnl
+[$CFLAGS $LDFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN [$LDLIBS]],,dnl
+[[ignore]],[[ignore]])])
+
 dnl $1 = program to run
 dnl $2 = expected stdout output
 m4_define([AT_LFANEW_DOSRUN],[dnl

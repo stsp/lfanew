@@ -1,4 +1,4 @@
-dnl Copyright (c) 2023 TK Chia
+dnl Copyright (c) 2018--2023 TK Chia
 dnl
 dnl Redistribution and use in source and binary forms, with or without
 dnl modification, are permitted provided that the following conditions are
@@ -25,15 +25,27 @@ dnl LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-AT_INIT([lfanew])
-AT_COPYRIGHT([Copyright (C) 2023 TK Chia.
-Released under the 3-clause BSD license.])
+dnl Perform checks for underlying C library facilities.
 
-AT_COLOR_TESTS
-
-dnl Test that the test harness works.  Naturally, this should come first.
-m4_include([metacheck.at])
-
-dnl Then do the actual tests...
-m4_include([lfanew.at])
-m4_include([io.h.at])
+AC_CHECK_DECL([O_TEXT],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE_O_TEXT],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_DECL([_O_TEXT],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE__O_TEXT],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_DECL([O_BINARY],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE_O_BINARY],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_DECL([_O_BINARY],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE__O_BINARY],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_DECL([_O_WTEXT],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE__O_WTEXT],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_DECL([_O_U8TEXT],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE__O_U8TEXT],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_DECL([_O_U16TEXT],
+	      [AC_DEFINE([_LFANEW_INTERNAL_HAVE__O_U16TEXT],[1])],,
+	      [#include <fcntl.h>])
+AC_CHECK_FUNC([_setmode],[AC_DEFINE([_LFANEW_INTERNAL_HAVE__SETMODE],[1])])

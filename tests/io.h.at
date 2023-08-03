@@ -25,15 +25,18 @@ dnl LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-AT_INIT([lfanew])
-AT_COPYRIGHT([Copyright (C) 2023 TK Chia.
-Released under the 3-clause BSD license.])
+AT_BANNER([[<lfanew/io.h>]])
 
-AT_COLOR_TESTS
-
-dnl Test that the test harness works.  Naturally, this should come first.
-m4_include([metacheck.at])
-
-dnl Then do the actual tests...
-m4_include([lfanew.at])
-m4_include([io.h.at])
+AT_SETUP([[_binmode]])
+AT_LFANEW_HOSTCC([[
+#include <stdlib.h>
+#include <lfanew/io.h>
+int
+main (void)
+{
+  if (_binmode (1) == -1)
+    abort ();
+  return 0;
+}
+]])
+AT_CLEANUP

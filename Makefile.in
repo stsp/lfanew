@@ -50,7 +50,9 @@ OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 
 PROGRAMS = lfanew$(EXEEXT)
-HEADERS = h/lfanew/_version.h \
+HEADERS = h/lfanew/io.h \
+	  h/lfanew/_config.h \
+	  h/lfanew/_version.h \
 	  h/nexgen/mzendian.h \
 	  h/nexgen/mzhdr.h
 

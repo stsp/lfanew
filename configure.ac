@@ -105,6 +105,8 @@ AC_CACHE_CHECK(dnl
   fi
   rm -f conftest.c conftest.exe]])
 
+m4_include([check-c.m4])
+
 dnl These programs are only used when running tests, but look for them anyway.
 AC_PATH_PROG(DOS2UNIX, dos2unix, /bin/false)
 AC_PATH_PROG(NASM, nasm, /bin/false)
@@ -117,9 +119,11 @@ AC_SUBST([WINCFLAGS])
 AC_SUBST([WINLDLIBS])
 AC_SUBST([lfanew_cv_prog_wincc_wl_section_alignment])
 AC_SUBST([lfanew_cv_prog_wincc_wl_align])
+dnl Wut, autoconf does not AC_SUBST LDLIBS on default...
+AC_SUBST([LDLIBS])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile tests/atlocal])
 AC_DEFINE_UNQUOTED([_LFANEW_VERSION],[${PACKAGE_VERSION}L])
-AC_CONFIG_HEADERS([h/lfanew/_version.h])
+AC_CONFIG_HEADERS([h/lfanew/_config.h h/lfanew/_version.h])
 AC_OUTPUT
