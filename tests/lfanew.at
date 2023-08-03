@@ -74,7 +74,7 @@ AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT])
 AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[quod erat demonstrandum
 ]])
 
-AT_LFANEW_WINCC([[
+AT_LFANEW_WINCC_REALIGN([[
 #include <unistd.h>
 int
 main (void)
@@ -83,7 +83,7 @@ main (void)
   write (1, msg, sizeof (msg) - 1);
   return 0;
 }
-]])
+]],0x40000)
 AT_LFANEW_WINRUN([AT_LFANEW_AOUT],[[hello as Windows
 ]])
 AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT],,,[[ignore]])

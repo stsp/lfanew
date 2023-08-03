@@ -38,28 +38,33 @@ AT_DATA([AT_LFANEW_AAIN],[$1])
 AT_CHECK([["$NASM" -o]AT_LFANEW_AOUT AT_LFANEW_AAIN],,[[ignore]],[[ignore]])])
 
 dnl $1 = text of program to compile
+dnl $2 = extra compiler options
 m4_define([AT_LFANEW_WINCC],[dnl
 AT_DATA([AT_LFANEW_ACIN],[$1])
-AT_CHECK([["$WINCC" $WINCFLAGS -o]AT_LFANEW_AOUT AT_LFANEW_ACIN],,dnl
-[[ignore]],[[ignore]])])
+AT_CHECK([[$WINCC $WINCFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN dnl
+[$WINLDLIBS]],,[[ignore]],[[ignore]])])
+
+dnl $1 = text of program to compile
+dnl $2 = section alignment to use
+m4_define([AT_LFANEW_WINCC_REALIGN],[dnl
+[if test yes = "$lfanew_cv_prog_wincc_wl_align"; then]
+  AT_LFANEW_WINCC([$1],[[-Wl,-align:]$2])
+[else]
+  AT_LFANEW_WINCC([$1],[[-Wl,--section-alignment=]$2])
+[fi]])
 
 dnl $1 = program to run
 dnl $2 = expected stdout output
-dnl $3 = expected stderr output
 m4_define([AT_LFANEW_DOSRUN],[dnl
 AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
-	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])])
+	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])])
 
 dnl $1 = program to run
 dnl $2 = expected stdout output
-dnl $3 = expected stderr output
-dnl FIXME: Wine likes to dump informational message on stderr, even with
-dnl	   WINEDEBUG=-all.  For now just skip any checking of stderr output
-dnl	   if not running on Windows.
 m4_define([AT_LFANEW_WINRUN],[dnl
 if test -z "$WINRUN"; then
   AT_CHECK([$1 [>] AT_LFANEW_TMP ]dnl
-	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[$3])
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])
 else
   AT_CHECK([["$WINRUN"] $1 [>] AT_LFANEW_TMP ]dnl
 	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])

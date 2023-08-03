@@ -31,3 +31,7 @@
 : ${WINRUN='@WINRUN@'}
 : ${WINCC='@WINCC@'}
 : ${WINCFLAGS='@WINCFLAGS@'}
+: ${WINLDLIBS='@WINLDLIBS@'}
+: ${lfanew_cv_prog_wincc_wl_section_alignment=\
+'@lfanew_cv_prog_wincc_wl_section_alignment@'}
+: ${lfanew_cv_prog_wincc_wl_align='@lfanew_cv_prog_wincc_wl_align@'}
