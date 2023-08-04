@@ -36,7 +36,7 @@ AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[world, hello
 ]])
 AT_CLEANUP
 
-AT_SETUP([[Unstubify mode (lfanew -U)]])
+AT_SETUP([[Unstubify & stubify modes (lfanew {-U | -S})]])
 
 AT_LFANEW_BINASM([AT_LFANEW_MZSTUB[
 mz2_start:
@@ -87,5 +87,10 @@ main (void)
 AT_LFANEW_WINRUN([AT_LFANEW_AOUT],[[hello as Windows
 ]])
 AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT],,,[[ignore]])
+AT_LFANEW_BINASM([AT_LFANEW_MZSTUBNEW])
+AT_CHECK([AT_LFANEW_TOOL [-S -o] AT_LFANEW_A3OUT dnl
+AT_LFANEW_A2OUT AT_LFANEW_AOUT],,,[[ignore]])
+AT_LFANEW_WINRUN([AT_LFANEW_A3OUT],[[hello as Windows
+]])
 
 AT_CLEANUP

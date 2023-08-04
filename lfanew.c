@@ -195,7 +195,7 @@ open_in (const char *path)
 static int
 open_out (const char *path)
 {
-  int out = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  int out = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0777);
   if (out == -1)
     error_with_errno ("cannot open output file");
   if (_binmode (out) == -1)
@@ -759,8 +759,9 @@ stubify (void)
   if (lfarlc == MZ_LFARLC_NEW)
     {
       oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
-      if (oem != 0 && ! xread1 (in2, &mz2.e_res, oem))
+      if (oem != 0)
 	{
+	  xread (in2, &mz2.e_res, oem);
 	  lfanew = leh32 (mz2.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot2_sz)
 	    {
@@ -813,8 +814,9 @@ unstubify (void)
   if (lfarlc == MZ_LFARLC_NEW)
     {
       oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
-      if (oem != 0 && ! xread1 (in1, &mz.e_res, oem))
+      if (oem != 0)
 	{
+	  xread (in1, &mz.e_res, oem);
 	  lfanew = leh32 (mz.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot_sz && ! force_cp_cblp)
 	    stub_sz = lfanew;
