@@ -69,25 +69,30 @@ fi
 case "$host" in
   *-cygwin* | *-mingw32* | *-mingw64* | *-msys* | *-windows* | *-winnt*)
     : ${WINRUN=}
-    : ${WINCC="$CC"}
-    : ${WINCFLAGS="$CPPFLAGS $CFLAGS $LDFLAGS -s"}
-    : ${WINLDLIBS="$LDLIBS"}
+    AC_CHECK_PROGS(WINCC,
+		   [i686-mingw32-gcc mingw32-gcc ]dnl
+		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], $CC)
     ;;
   *)
     AC_PATH_PROG(WINRUN, wine, /bin/false)
     AC_CHECK_PROGS(WINCC,
 		   [i686-mingw32-gcc mingw32-gcc ]dnl
 		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], /bin/false)
-    : ${WINCFLAGS="-Wall -Os -s"}
-    : ${WINLDLIBS=}
     ;;
 esac
+if test x"$CC" = x"$WINCC"; then
+  : ${WINCFLAGS="$CPPFLAGS $CFLAGS $LDFLAGS -s"}
+  : ${WINLIBS="$LIBS"}
+else
+  : ${WINCFLAGS="-Wall -Os -s"}
+  : ${WINLIBS=}
+fi
 AC_CACHE_CHECK(dnl
 [whether $WINCC accepts -Wl,--section-alignment=],dnl
 [lfanew_cv_prog_wincc_wl_section_alignment],[dnl
   AC_LANG_CONFTEST([AC_LANG_SOURCE([[int main (void) { return 0; }]])])
   [if $WINCC $WINCFLAGS -Wl,--section-alignment=0x8000 \
-	    -o conftest.exe conftest.c $WINLDLIBS \
+	    -o conftest.exe conftest.c $WINLIBS \
 	    >&]AS_MESSAGE_LOG_FD[ 2>&1; then
     lfanew_cv_prog_wincc_wl_section_alignment=yes
   else
@@ -116,11 +121,9 @@ AC_SUBST([lfanew_ackhost])
 AC_SUBST([WINRUN])
 AC_SUBST([WINCC])
 AC_SUBST([WINCFLAGS])
-AC_SUBST([WINLDLIBS])
+AC_SUBST([WINLIBS])
 AC_SUBST([lfanew_cv_prog_wincc_wl_section_alignment])
 AC_SUBST([lfanew_cv_prog_wincc_wl_align])
-dnl Wut, autoconf does not AC_SUBST LDLIBS on default...
-AC_SUBST([LDLIBS])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile tests/atlocal])

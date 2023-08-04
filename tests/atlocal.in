@@ -31,7 +31,7 @@
 : ${WINRUN='@WINRUN@'}
 : ${WINCC='@WINCC@'}
 : ${WINCFLAGS='@WINCFLAGS@'}
-: ${WINLDLIBS='@WINLDLIBS@'}
+: ${WINLIBS='@WINLIBS@'}
 : ${lfanew_cv_prog_wincc_wl_section_alignment=\
 '@lfanew_cv_prog_wincc_wl_section_alignment@'}
 : ${lfanew_cv_prog_wincc_wl_align='@lfanew_cv_prog_wincc_wl_align@'}
@@ -39,4 +39,4 @@
 : ${CPPFLAGS='@CPPFLAGS@'}
 : ${CFLAGS='@CFLAGS@'}
 : ${LDFLAGS='@LDFLAGS@'}
-: ${LDLIBS='@LDLIBS@'}
+: ${LIBS='@LIBS@'}

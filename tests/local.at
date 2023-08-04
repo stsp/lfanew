@@ -42,8 +42,8 @@ dnl $1 = text of program to compile
 dnl $2 = extra compiler options
 m4_define([AT_LFANEW_WINCC],[dnl
 AT_DATA([AT_LFANEW_ACIN],[$1])
-AT_CHECK([[$WINCC $WINCFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN dnl
-[$WINLDLIBS]],,[[ignore]],[[ignore]])])
+AT_CHECK([[$WINCC $WINCFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN [$WINLIBS]]dnl
+,,[[ignore]],[[ignore]])])
 
 dnl $1 = text of program to compile
 dnl $2 = section alignment to use
@@ -59,7 +59,7 @@ dnl $2 = extra compiler options
 m4_define([AT_LFANEW_HOSTCC],[dnl
 AT_DATA([AT_LFANEW_ACIN],[$1])
 AT_CHECK([[$CC $CPPFLAGS -I"$abs_top_builddir"/h -I"$abs_top_srcdir"/h] dnl
-[$CFLAGS $LDFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN [$LDLIBS]],,dnl
+[$CFLAGS $LDFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN [$LIBS]],,dnl
 [[ignore]],[[ignore]])])
 
 dnl $1 = program to run

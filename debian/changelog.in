@@ -1,9 +1,9 @@
-lfanew (20230804-build20230804-1~@distro@) @distro@; urgency=medium
+lfanew (20230804-build20230804-2~@distro@) @distro@; urgency=medium
 
   * lfanew.c: fix lossage for lfanew -U.
   * Tests: add test for lfanew -S.
 
- -- TK Chia <tkchia@users.noreply.github.com>  Fri, 04 Aug 2023 18:11:46 +0000
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 04 Aug 2023 23:39:57 +0000
 
 lfanew (20230803-build20230804-1~@distro@) @distro@; urgency=medium
 

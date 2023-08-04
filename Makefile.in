@@ -46,6 +46,7 @@ CC = @CC@
 CPPFLAGS = @CPPFLAGS@ -I$(srcdir)/h -I$(objdir)/h
 CFLAGS = @CFLAGS@
 LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
 OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 
@@ -105,7 +106,7 @@ lfanew$(EXEEXT): lfanew.$(OBJEXT)
 lfanew.$(OBJEXT): lfanew.c $(HEADERS)
 
 %$(EXEEXT): %.o
-	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) $(LIBS) -o $@
 
 # Copy the generated tests/testsuite from the source directory to the build
 # directory, or create a symlink from the latter to the former --- but only
