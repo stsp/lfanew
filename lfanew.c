@@ -28,6 +28,8 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -35,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <lfanew/io.h>
 #include <nexgen/mzendian.h>
 #include <nexgen/mzhdr.h>
 #include <nexgen/pehdr.h>
@@ -60,7 +63,7 @@ static op_mode_t op_mode = MODE_DEFAULT;
 static bool keep_output = false, force_cp_cblp = false, unsafe = false;
 static const char *me = NULL, *out_path = NULL,
 		  *in1_path = NULL, *in2_path = NULL;
-static FILE *in1 = NULL, *in2 = NULL, *out = NULL;
+static int in1 = -1, in2 = -1, out = -1;
 
 static void
 usage (void)
@@ -80,14 +83,14 @@ usage (void)
 static void
 clean_up (void)
 {
-  if (out)
-    fclose (out);
+  if (out != -1)
+    close (out);
   if (! keep_output && out_path)
    remove (out_path);
-  if (in1)
-    fclose (in1);
-  if (in2)
-    fclose (in2);
+  if (in1 != -1)
+    close (in1);
+  if (in2 != -1)
+    close (in2);
 }
 
 static void
@@ -178,54 +181,124 @@ parse_args (int argc, char **argv)
   in1_path = argv[optind];
 }
 
-static FILE *
+static int
 open_in (const char *path)
 {
-  FILE *in = fopen (path, "rb");
-  if (! in)
+  int in = open (path, O_RDONLY);
+  if (in == -1)
+    error_with_errno ("cannot open input file");
+  if (_binmode (in) == -1)
     error_with_errno ("cannot open input file");
   return in;
 }
 
-static FILE *
+static int
 open_out (const char *path)
 {
-  FILE *out = fopen (path, "wb");
-  if (! out)
+  int out = open (path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if (out == -1)
+    error_with_errno ("cannot open output file");
+  if (_binmode (out) == -1)
     error_with_errno ("cannot open output file");
   return out;
 }
 
 static void
-close_out (FILE *out)
+close_out (int out)
 {
-  if (fclose (out) != 0)
+  if (close (out) == -1)
     error_with_errno ("cannot close output file");
 }
 
 static ul_t
-size_it (FILE *in)
+size_it (int in)
 {
-  fpos_t pos;
+  off_t pos, end_pos;
   ul_t tot_sz;
 
-  if (fgetpos (in, &pos) != 0
-      || fseek (in, 0L, SEEK_END) != 0)
+  pos = lseek (in, (off_t) 0, SEEK_CUR);
+  if (pos == (off_t) -1)
     error_with_errno ("cannot get size of input file");
 
-  tot_sz = (ul_t) (ftell (in) + 1);
-  if (! tot_sz)
+  end_pos = lseek (in, (off_t) 0, SEEK_END);
+  if (end_pos == (off_t) -1)
     error_with_errno ("cannot get size of input file");
-  --tot_sz;
 
-  if (fsetpos (in, &pos) != 0)
+  if ((uintmax_t) end_pos > ULONG_MAX)
+    error ("size of input file exceeds %#lx", (ul_t) ULONG_MAX);
+
+  tot_sz = (ul_t) end_pos;
+
+  if (lseek (in, pos, SEEK_SET) != pos)
     error_with_errno ("cannot get size of input file");
 
   return tot_sz;
 }
 
+static bool
+xread1 (int in, void *buf, size_t n)
+{
+  char *p = (char *) buf;
+  ssize_t r;
+  while (n != 0)
+    {
+      errno = 0;
+      r = read (in, p, n);
+      if (r <= 0)
+	{
+	  int err = errno;
+	  if (err != EAGAIN && err != EINTR)
+	    return false;
+	}
+      else
+	{
+	  p += (size_t) r;
+	  n -= (size_t) r;
+	}
+    }
+  return true;
+}
+
 static void
-process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
+xread (int in, void *buf, size_t n)
+{
+  if (! xread1 (in, buf, n))
+    error_with_errno ("cannot read input file");
+}
+
+static bool
+xwrite1 (int out, const void *buf, size_t n)
+{
+  const char *p = (const char *) buf;
+  ssize_t r;
+  while (n != 0)
+    {
+      errno = 0;
+      r = write (out, p, n);
+      if (r <= 0)
+	{
+	  int err = errno;
+	  if (err != EAGAIN && err != EINTR)
+	    return false;
+	}
+      else
+	{
+	  p += (size_t) r;
+	  n -= (size_t) r;
+	}
+    }
+  return true;
+}
+
+static void
+xwrite (int out, const void *buf, size_t n)
+{
+  if (! xwrite1 (out, buf, n))
+    error_with_errno ("cannot write output file");
+}
+
+static void
+process_mz_hdr_common (int in, mz_hdr_t *pmz, ul_t *p_tot_sz,
 		       uint32_t *p_mz_sz)
 {
   ul_t tot_sz;
@@ -237,8 +310,7 @@ process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
     error ("input is not MZ file");
 
   memset (pmz, 0, sizeof (mz_hdr_t));
-  if (fread (pmz, offsetof (mz_hdr_t, e_res), 1, in) != 1)
-    error_with_errno ("cannot read input file");
+  xread (in, pmz, offsetof (mz_hdr_t, e_res));
   if (leh16 (pmz->e_magic) != MZ_MAGIC)
     error ("input is not MZ file");
 
@@ -278,19 +350,18 @@ process_mz_hdr_common (FILE *in, mz_hdr_t *pmz, ul_t *p_tot_sz,
 }
 
 static void
-process_ne_magic (FILE *in, uint_le32_t *p_ne_magic_le, const char *what)
+process_new_magic (int in, uint_le32_t *p_new_magic_le, const char *what)
 {
-  size_t magic_len = sizeof (*p_ne_magic_le);
-  uint16_t ne_magic_lo;
+  size_t magic_len = sizeof (*p_new_magic_le);
+  uint16_t new_magic_lo;
 
-  if (fread (p_ne_magic_le, 1, magic_len, in) != magic_len)
-    error ("cannot read payload magic number");
+  xread (in, p_new_magic_le, magic_len);
 
   if (unsafe)
     return;
 
-  ne_magic_lo = leh32lo (*p_ne_magic_le);
-  switch (ne_magic_lo)
+  new_magic_lo = leh32lo (*p_new_magic_le);
+  switch (new_magic_lo)
     {
     default:
       break;
@@ -308,35 +379,42 @@ process_ne_magic (FILE *in, uint_le32_t *p_ne_magic_le, const char *what)
 }
 
 static void
-pad (FILE *out, size_t n)
+pad (int out, size_t n)
 {
-  char buf = 0;
-  while (n-- != 0)
-    if (fwrite (&buf, 1, 1, out) != 1)
-      error_with_errno ("cannot pad output file");
+  char buf[MZ_PG_SZ];
+  memset (buf, 0, sizeof (buf));
+  while (n >= sizeof (buf))
+    {
+      xwrite (out, buf, sizeof (buf));
+      n -= sizeof (buf);
+    }
+  xwrite (out, buf, n);
 }
 
 static void
-skip (FILE *in, size_t n)
+skip (int in, size_t n)
 {
-  char buf;
-  while (n-- != 0)
-    if (fread (&buf, 1, 1, in) != 1)
-      error_with_errno ("cannot skip input bytes");
+  char buf[MZ_PG_SZ];
+  while (n >= sizeof (buf))
+    {
+      xread (in, buf, sizeof (buf));
+      n -= sizeof (buf);
+    }
+  xread (in, buf, n);
 }
 
 static void
-copy (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
+copy (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 {
-  char buf[BUFSIZ];
+  char buf[MZ_PG_SZ];
   while (sz)
     {
-      size_t n = sz < BUFSIZ ? sz : BUFSIZ;
-      if (fread (buf, 1, n, in) != n)
+      size_t n = sz < sizeof (buf) ? sz : sizeof (buf);
+      if (! xread1 (in, buf, n))
 	error_with_errno ("cannot read input file at offset %#lx",
 			  (ul_t) in_off);
       in_off += n;
-      if (fwrite (buf, 1, n, out) != n)
+      if (! xwrite1 (out, buf, n))
 	error_with_errno ("cannot copy to output file at offset %#lx",
 			  (ul_t) out_off);
       out_off += n;
@@ -364,7 +442,7 @@ pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust)
 }
 
 static void
-copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
+copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 {
   uint32_t inh_size, aligned_inh_size, outh_size, aligned_outh_size,
 	   inh_slack, outh_slack, file_align, adjust;
@@ -379,14 +457,14 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
   if (sizeof (fhdr) > sz)
     error ("PE COFF file header overshoots file end");
 
-  if (fread (&fhdr, sizeof (fhdr), 1, in) != 1)
+  if (! xread1 (in, &fhdr, sizeof (fhdr)))
     error_with_errno ("cannot read PE COFF file header");
 
   if (leh32 (fhdr.PointerToSymbolTable) != 0
       || leh32 (fhdr.NumberOfSymbols) != 0)
     error ("PE COFF symbol table unsupported");
 
-  if (fwrite (&fhdr, sizeof (fhdr), 1, out) != 1)
+  if (! xwrite1 (out, &fhdr, sizeof (fhdr)))
     error_with_errno ("cannot write PE COFF file header");
 
   in_off += sizeof (fhdr);
@@ -403,7 +481,7 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
     error ("PE optional header overshoots file end");
 
   memset (&ophdr, 0, sizeof (ophdr));
-  if (fread (&ophdr, ophdr_size, 1, in) != 1)
+  if (! xread1 (in, &ophdr, ophdr_size))
     error_with_errno ("cannot read PE optional header");
 
   file_align = leh32 (ophdr.h.FileAlignment);
@@ -492,7 +570,7 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	}
     }
 
-  if (fwrite (&ophdr, ophdr_size, 1, out) != 1)
+  if (! xwrite1 (out, &ophdr, ophdr_size))
     error_with_errno ("cannot write PE optional header");
 
   in_off += ophdr_size;
@@ -507,7 +585,7 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
       if (sizeof (sect) > sz)
 	error ("PE section header #%#x overshoots file end", (ui_t) i);
 
-      if (fread (&sect, sizeof (sect), 1, in) != 1)
+      if (! xread1 (in, &sect, sizeof (sect)))
 	error_with_errno ("cannot read PE section header #%#x", (ui_t) i);
 
       rva = leh32 (sect.VirtualAddress);
@@ -520,7 +598,7 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
       pe_adjust_off (&sect.PointerToRelocations, aligned_inh_size, adjust);
       pe_adjust_off (&sect.PointerToLinenumbers, aligned_inh_size, adjust);
 
-      if (fwrite (&sect, sizeof (sect), 1, out) != 1)
+      if (! xwrite1 (out, &sect, sizeof (sect)))
 	error_with_errno ("cannot write PE section header #%#x", (ui_t) i);
 
       in_off += sizeof (sect);
@@ -572,10 +650,10 @@ copy_pe (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off)
 }
 
 static void
-copy_ne (FILE *in, FILE *out, ul_t sz, uint32_t in_off, uint32_t out_off,
-	 uint_le32_t ne_magic_le)
+copy_new (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off,
+	  uint_le32_t new_magic_le)
 {
-  switch (leh32 (ne_magic_le))
+  switch (leh32 (new_magic_le))
     {
     default:
       copy (in, out, sz, in_off, out_off);
@@ -619,7 +697,7 @@ lfanew (void)
 	   (ui_t) lfarlc, (ul_t) (rels_end - lfarlc), (ul_t) hdr_end);
 
   oem = lfarlc - offsetof (mz_hdr_t, e_res);
-  if (oem != 0 && fread (mz.e_res, oem, 1, in1) != 1)
+  if (oem != 0 && ! xread1 (in1, mz.e_res, oem))
     error ("cannot read optional header information");
 
   new_rels_end = MZ_LFARLC_NEW + (uint32_t) crlc * MZ_RELOC_SZ;
@@ -647,8 +725,7 @@ lfanew (void)
   mz.e_lfanew = hle32 (new_tot_sz);
 
   out = open_out (out_path);
-  if (fwrite (&mz, sizeof mz, 1, out) != 1)
-    error_with_errno ("cannot write output file");
+  xwrite (out, &mz, sizeof (mz));
 
   copy (in1, out, rels_sz, lfarlc, MZ_LFARLC_NEW);
   pad (out, new_hdr_end - new_rels_end);
@@ -657,14 +734,14 @@ lfanew (void)
   pad (out, aligned_tot_sz - tot_sz);
 
   close_out (out);
-  fclose (in1);
+  close (in1);
 }
 
 static void
 stubify (void)
 {
-  uint_le32_t ne_magic_le;
-  size_t magic_len = sizeof (ne_magic_le);
+  uint_le32_t new_magic_le;
+  size_t magic_len = sizeof (new_magic_le);
   ul_t tot1_sz, tot2_sz;
   mz_hdr_t mz2;
   uint16_t lfarlc, oem;
@@ -672,7 +749,7 @@ stubify (void)
 
   in1 = open_in (in1_path);
   tot1_sz = size_it (in1);
-  process_ne_magic (in1, &ne_magic_le, "stubify");
+  process_new_magic (in1, &new_magic_le, "stubify");
 
   in2 = open_in (in2_path);
   process_mz_hdr_common (in2, &mz2, &tot2_sz, &mz2_sz);
@@ -682,7 +759,7 @@ stubify (void)
   if (lfarlc == MZ_LFARLC_NEW)
     {
       oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
-      if (oem != 0 && fread (&mz2.e_res, oem, 1, in2) == 1)
+      if (oem != 0 && ! xread1 (in2, &mz2.e_res, oem))
 	{
 	  lfanew = leh32 (mz2.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot2_sz)
@@ -701,19 +778,21 @@ stubify (void)
 
   out = open_out (out_path);
 
-  rewind (in2);
+  errno = 0;
+  if (lseek (in2, (off_t) 0, SEEK_SET) != (off_t) 0)
+    error_with_errno ("cannot rewind stub file");
   copy (in2, out, stub_sz, 0, 0);
-  fclose (in2);
-  in2 = NULL;
+  close (in2);
+  in2 = -1;
 
-  if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
+  if (! xwrite1 (out, &new_magic_le, magic_len))
     error ("cannot write payload magic number");
 
-  copy_ne (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len,
-	   ne_magic_le);
+  copy_new (in1, out, tot1_sz - magic_len, magic_len, stub_sz + magic_len,
+	    new_magic_le);
 
   close_out (out);
-  fclose (in1);
+  close (in1);
 }
 
 static void
@@ -723,8 +802,8 @@ unstubify (void)
   mz_hdr_t mz;
   uint16_t lfarlc, oem;
   uint32_t mz_sz, stub_sz, lfanew;
-  uint_le32_t ne_magic_le;
-  size_t magic_len = sizeof (ne_magic_le);
+  uint_le32_t new_magic_le;
+  size_t magic_len = sizeof (new_magic_le);
 
   in1 = open_in (in1_path);
   process_mz_hdr_common (in1, &mz, &tot_sz, &mz_sz);
@@ -734,7 +813,7 @@ unstubify (void)
   if (lfarlc == MZ_LFARLC_NEW)
     {
       oem = MZ_LFARLC_NEW - offsetof (mz_hdr_t, e_res);
-      if (oem != 0 && fread (&mz.e_res, oem, 1, in1) == 1)
+      if (oem != 0 && ! xread1 (in1, &mz.e_res, oem))
 	{
 	  lfanew = leh32 (mz.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot_sz && ! force_cp_cblp)
@@ -747,19 +826,20 @@ unstubify (void)
   else if (tot_sz - stub_sz < 2)
     error ("too little non-stub content to unstubify?");
 
-  if (fseek (in1, stub_sz, SEEK_SET) != 0)
-    error ("cannot seek to end of stub");
+  errno = 0;
+  if (lseek (in1, (off_t) stub_sz, SEEK_SET) != (off_t) stub_sz)
+    error_with_errno ("cannot seek to end of stub");
 
-  process_ne_magic (in1, &ne_magic_le, "unstubify");
+  process_new_magic (in1, &new_magic_le, "unstubify");
 
   out = open_out (out_path);
-  if (fwrite (&ne_magic_le, 1, magic_len, out) != magic_len)
+  if (! xwrite1 (out, &new_magic_le, magic_len))
     error ("cannot write payload magic number");
-  copy_ne (in1, out, tot_sz - stub_sz - magic_len,
-	   stub_sz + magic_len, (uint32_t) magic_len, ne_magic_le);
+  copy_new (in1, out, tot_sz - stub_sz - magic_len,
+	    stub_sz + magic_len, (uint32_t) magic_len, new_magic_le);
 
   close_out (out);
-  fclose (in1);
+  close (in1);
 }
 
 static void

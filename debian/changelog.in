@@ -1,3 +1,13 @@
+lfanew (20230803-build20230804-1~@distro@) @distro@; urgency=medium
+
+  * Add a new <lfanew/io.h> library header, with a _binmode (, ) function.
+  * Internal changes:
+    - lfanew.c: internal change: rewrite to use file descriptors.
+    - Tests: try unstubifying a PE file with a wide section alignment.
+    - AppVeyor CI: package a build artifact.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 04 Aug 2023 10:03:23 +0000
+
 lfanew (20230802-build20230802-2~@distro@) @distro@; urgency=medium
 
   * lfanew.c: -S & -U: copy debug table for now, until I can figure out the
