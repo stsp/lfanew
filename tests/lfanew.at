@@ -36,7 +36,7 @@ AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[world, hello
 ]])
 AT_CLEANUP
 
-AT_SETUP([[Unstubify mode (lfanew -U)]])
+AT_SETUP([[Unstubify & stubify modes (lfanew {-U | -S})]])
 
 AT_LFANEW_BINASM([AT_LFANEW_MZSTUB[
 mz2_start:
@@ -74,6 +74,11 @@ AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT])
 AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[quod erat demonstrandum
 ]])
 
+dnl Do not use an overly wide alignment (e.g. 0x40000).  This may cause
+dnl a Cygwin program to fail with
+dnl "0 [main] a3 (6772) child_copy: cygheap read copy failed,
+dnl  0x800000000..0x8000266D0, done 0, windows pid 6772, Win32 error 6".
+dnl MinGW/i686 programs do not have this issue.
 AT_LFANEW_WINCC_REALIGN([[
 #include <unistd.h>
 int
@@ -83,9 +88,14 @@ main (void)
   write (1, msg, sizeof (msg) - 1);
   return 0;
 }
-]],0x40000)
+]],0x10000,0x1000000)
 AT_LFANEW_WINRUN([AT_LFANEW_AOUT],[[hello as Windows
 ]])
 AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT],,,[[ignore]])
+AT_LFANEW_BINASM([AT_LFANEW_MZSTUBNEW])
+AT_CHECK([AT_LFANEW_TOOL [-S -o] AT_LFANEW_A3OUT dnl
+AT_LFANEW_A2OUT AT_LFANEW_AOUT],,,[[ignore]])
+AT_LFANEW_WINRUN([AT_LFANEW_A3OUT],[[hello as Windows
+]])
 
 AT_CLEANUP

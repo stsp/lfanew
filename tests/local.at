@@ -30,6 +30,7 @@ m4_define([AT_LFANEW_AAIN],[./a.asm])
 m4_define([AT_LFANEW_ACIN],[./a.c])
 m4_define([AT_LFANEW_AOUT],[./a.exe])
 m4_define([AT_LFANEW_A2OUT],[./a2.exe])
+m4_define([AT_LFANEW_A3OUT],[./a3.exe])
 m4_define([AT_LFANEW_TMP],[./a.tmp])
 
 dnl $1 = text of program to assemble
@@ -46,11 +47,12 @@ AT_CHECK([[$WINCC $WINCFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN dnl
 
 dnl $1 = text of program to compile
 dnl $2 = section alignment to use
+dnl $3 = size of heap to reserve
 m4_define([AT_LFANEW_WINCC_REALIGN],[dnl
 [if test yes = "$lfanew_cv_prog_wincc_wl_align"; then]
-  AT_LFANEW_WINCC([$1],[[-Wl,-align:]$2])
+  AT_LFANEW_WINCC([$1],[[-Wl,-align:]$2 [-Wl,-heap:]$3])
 [else]
-  AT_LFANEW_WINCC([$1],[[-Wl,--section-alignment=]$2])
+  AT_LFANEW_WINCC([$1],[[-Wl,--section-alignment=]$2 [-Wl,--heap=]$3])
 [fi]])
 
 dnl $1 = text of program to compile
@@ -64,15 +66,16 @@ AT_CHECK([[$CC $CPPFLAGS -I"$abs_top_builddir"/h -I"$abs_top_srcdir"/h] dnl
 dnl $1 = program to run
 dnl $2 = expected stdout output
 m4_define([AT_LFANEW_DOSRUN],[dnl
-AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
-	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])])
+  AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])])
 
 dnl $1 = program to run
 dnl $2 = expected stdout output
 m4_define([AT_LFANEW_WINRUN],[dnl
 if test -z "$WINRUN"; then
-  AT_CHECK([$1 [>] AT_LFANEW_TMP ]dnl
-	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])
+  AT_CHECK([[:] $1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[],[[ignore]])
+  :
 else
   AT_CHECK([["$WINRUN"] $1 [>] AT_LFANEW_TMP ]dnl
 	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])
@@ -110,5 +113,43 @@ mz_entry:
 	int	0x21
 	mov	ax, 0x4c00
 	int	0x21
+mz_end:
+]])
+
+dnl MZ stub with .e_cblp, .e_cp, & .e_lfanew
+m4_define([AT_LFANEW_MZSTUBNEW],[[
+%define MZ_PG_SZ	0x200
+%define MZ_PARA_SZ	0x10
+%define MZ_PSP_SZ	0x100
+%define MZ_LFARLC_NEW	0x3c
+mz_start:
+	dw	0x5a4d						; .e_magic
+	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
+	dw	(mz_end - mz_start + MZ_PG_SZ - 1) / MZ_PG_SZ	; .e_cp
+	dw	0						; .e_crlc
+	dw	(mz_hdr_end - mz_start) / MZ_PARA_SZ		; .e_cparhdr
+	dw	0						; .e_minalloc
+	dw	-1						; .e_maxalloc
+	dw	-(MZ_PSP_SZ / MZ_PARA_SZ), MZ_PSP_SZ		; .e_ss, .e_sp
+	dw	0						; .e_csum
+	dw	mz_entry					; .e_ip
+	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
+	dw	MZ_LFARLC_NEW					; .e_lfarlc
+	dw	0						; .e_ovno
+	times (MZ_LFARLC_NEW - ($ - mz_start)) db 0
+	dd	mz_end						; .e_lfanew
+mz_hdr_end:
+mz_msg:
+	db	"world, hello",13,10,"$"
+mz_entry:
+	push	cs
+	pop	ds
+	mov	ah, 9
+	mov	dx, mz_msg
+	int	0x21
+	mov	ax, 0x4c00
+	int	0x21
+	align MZ_PARA_SZ, int3
+	times 0xa000 int3
 mz_end:
 ]])
