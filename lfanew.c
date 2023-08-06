@@ -329,7 +329,7 @@ process_mz_hdr_common (int in, mz_hdr_t *pmz, ul_t *p_tot_sz,
     {
       mz_sz = (long) (cp - 1) * MZ_PG_SZ + cblp;
       if (cblp >= MZ_PG_SZ)
-	warn ("MZ e_cblp == %#x > %#x looks bogus",
+	warn ("MZ e_cblp == %#x >= %#x looks bogus",
 	      (ui_t) cblp, (ui_t) MZ_PG_SZ);
     }
 
@@ -717,6 +717,10 @@ lfanew (void)
 	       aligned_tot_sz, (ul_t) mz_sz, (ul_t) new_mz_sz);
       new_tot_sz = aligned_tot_sz - mz_sz + new_mz_sz;
     }
+
+  if (mz_sz > (uint32_t) 0xffff * MZ_PG_SZ)
+    error ("output MZ stub will be too large, %#lx > %#lx",
+	   (ul_t) mz_sz, (ul_t) 0xffff * MZ_PG_SZ);
 
   mz.e_cblp = hle16 (new_mz_sz % MZ_PG_SZ);
   mz.e_cp = hle16 ((new_mz_sz + MZ_PG_SZ - 1) / MZ_PG_SZ);
