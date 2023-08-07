@@ -298,21 +298,32 @@ xwrite (int out, const void *buf, size_t n)
 }
 
 static void
-process_mz_hdr_common (int in, mz_hdr_t *pmz, ul_t *p_tot_sz,
-		       uint32_t *p_mz_sz)
+process_old_magic (int in, uint_le16_t *p_old_magic_le)
+{
+  size_t magic_len = sizeof (*p_old_magic_le);
+  xread (in, p_old_magic_le, magic_len);
+}
+
+static void
+process_mz_hdr_common (int in, uint_le16_t old_magic_le,
+		       mz_hdr_t *pmz, ul_t *p_tot_sz, uint32_t *p_mz_sz)
 {
   ul_t tot_sz;
-  uint16_t lfarlc, cp, cblp, cparhdr;
+  uint16_t old_magic, lfarlc, cp, cblp, cparhdr;
   uint32_t mz_sz, hdr_end;
 
   tot_sz = size_it (in);
   if (tot_sz < offsetof (mz_hdr_t, e_res))
     error ("input is not MZ file");
 
-  memset (pmz, 0, sizeof (mz_hdr_t));
-  xread (in, pmz, offsetof (mz_hdr_t, e_res));
-  if (leh16 (pmz->e_magic) != MZ_MAGIC)
+  old_magic = leh16 (old_magic_le);
+  if (old_magic != MZ_MAGIC && old_magic != MZ_MAGIC_ALT)
     error ("input is not MZ file");
+
+  memset (pmz, 0, sizeof (mz_hdr_t));
+  pmz->e_magic = old_magic_le;
+  xread (in, &pmz->e_cblp,
+	 offsetof (mz_hdr_t, e_res) - offsetof (mz_hdr_t, e_cblp));
 
   lfarlc = leh16 (pmz->e_lfarlc);
   if (lfarlc < offsetof (mz_hdr_t, e_res))
@@ -668,13 +679,15 @@ static void
 lfanew (void)
 {
   ul_t tot_sz, aligned_tot_sz;
+  uint_le16_t old_magic_le;
   mz_hdr_t mz;
   uint16_t lfarlc, oem, cparhdr, crlc;
   uint32_t mz_sz, new_mz_sz, new_tot_sz, rels_sz, rels_end, hdr_end,
 	   new_rels_end, new_hdr_end;
 
   in1 = open_in (in1_path);
-  process_mz_hdr_common (in1, &mz, &tot_sz, &mz_sz);
+  process_old_magic (in1, &old_magic_le);
+  process_mz_hdr_common (in1, old_magic_le, &mz, &tot_sz, &mz_sz);
 
   if (tot_sz > (ul_t) UINT32_MAX - MZ_PARA_SZ + 1)
     error ("input file too large, %#lx > 4 GiB - %#x",
@@ -747,6 +760,7 @@ stubify (void)
   uint_le32_t new_magic_le;
   size_t magic_len = sizeof (new_magic_le);
   ul_t tot1_sz, tot2_sz;
+  uint_le16_t old_magic_le;
   mz_hdr_t mz2;
   uint16_t lfarlc, oem;
   uint32_t mz2_sz, stub_sz, lfanew = 0;
@@ -756,7 +770,8 @@ stubify (void)
   process_new_magic (in1, &new_magic_le, "stubify");
 
   in2 = open_in (in2_path);
-  process_mz_hdr_common (in2, &mz2, &tot2_sz, &mz2_sz);
+  process_old_magic (in2, &old_magic_le);
+  process_mz_hdr_common (in2, old_magic_le, &mz2, &tot2_sz, &mz2_sz);
 
   lfarlc = leh16 (mz2.e_lfarlc);
   stub_sz = mz2_sz;
@@ -809,9 +824,11 @@ unstubify (void)
   uint32_t mz_sz, stub_sz, lfanew;
   uint_le32_t new_magic_le;
   size_t magic_len = sizeof (new_magic_le);
+  uint_le16_t old_magic_le;
 
   in1 = open_in (in1_path);
-  process_mz_hdr_common (in1, &mz, &tot_sz, &mz_sz);
+  process_old_magic (in1, &old_magic_le);
+  process_mz_hdr_common (in1, old_magic_le, &mz, &tot_sz, &mz_sz);
 
   lfarlc = leh16 (mz.e_lfarlc);
   stub_sz = mz_sz;

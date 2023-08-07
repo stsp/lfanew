@@ -54,6 +54,7 @@ typedef struct
   } mz_hdr_t;
 
 #define MZ_MAGIC	0x5a4dU
+#define MZ_MAGIC_ALT	0x4d5aU
 #define MZ_PG_SZ	0x200U
 #define MZ_PARA_SZ	0x10U
 #define MZ_RELOC_SZ	4U
