@@ -1,3 +1,11 @@
+lfanew (20230808-build20230808-2~@distro@) @distro@; urgency=medium
+
+  * Start switching license to Mozilla Public License 2.0.
+  * lfanew.c: also recognize ZM magic signature for MZ files.
+  * Various minor fixes.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Tue, 08 Aug 2023 21:31:34 +0000
+
 lfanew (20230804-build20230804-2~@distro@) @distro@; urgency=medium
 
   * lfanew.c: fix lossage for lfanew -U.

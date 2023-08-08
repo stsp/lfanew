@@ -2,6 +2,10 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: lfanew
 Source: <https://gitlab.com/tkchia/lfanew>
 
+Files: README.asciidoc h/lfanew/io.h
+Copyright: 2023 TK Chia
+License: MPL-2.0
+
 Files: *
 Copyright: 2023 TK Chia
 License: BSD-3-Clause
@@ -23,6 +27,11 @@ License: GPL-3.0+ with Autoconf Configure Script exception
 Files: install-sh
 Copyright: 1994 X Consortium
 License: X11
+
+License: MPL-2.0
+ This Source Code Form is subject to the terms of the Mozilla Public
+ License, v. 2.0. If a copy of the MPL was not distributed with this
+ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 License: BSD-3-Clause
  Redistribution and use in source and binary forms, with or without
