@@ -74,7 +74,7 @@ AT_CHECK([AT_LFANEW_TOOL [-U -o] AT_LFANEW_A2OUT AT_LFANEW_AOUT])
 AT_LFANEW_DOSRUN([AT_LFANEW_A2OUT],[[quod erat demonstrandum
 ]])
 
-AT_LFANEW_WINCC_REALIGN([[
+AT_LFANEW_WINCC_RERVA([[
 #include <unistd.h>
 int
 main (void)

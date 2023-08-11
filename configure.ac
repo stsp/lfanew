@@ -1,29 +1,8 @@
 dnl Copyright (c) 2023 TK Chia
 dnl
-dnl Redistribution and use in source and binary forms, with or without
-dnl modification, are permitted provided that the following conditions are
-dnl met:
-dnl
-dnl   * Redistributions of source code must retain the above copyright
-dnl     notice, this list of conditions and the following disclaimer.
-dnl   * Redistributions in binary form must reproduce the above copyright
-dnl     notice, this list of conditions and the following disclaimer in the
-dnl     documentation and/or other materials provided with the distribution.
-dnl   * Neither the name of the developer(s) nor the names of its
-dnl     contributors may be used to endorse or promote products derived from
-dnl     this software without specific prior written permission.
-dnl
-dnl THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-dnl IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-dnl TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-dnl PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT
-dnl HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-dnl SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-dnl TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-dnl PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-dnl LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+dnl This Source Code Form is subject to the terms of the Mozilla Public
+dnl License, v. 2.0. If a copy of the MPL was not distributed with this
+dnl file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 _LFANEW_GCC_ACK_FIX
 
@@ -61,6 +40,8 @@ if test -n "$lfanew_ackhost"; then
   fi
 fi
 AC_PROG_INSTALL
+AC_PROG_GREP
+AC_PROG_AWK
 AC_LANG_WERROR
 AC_PROG_CC
 if test yes = "$GCC"; then
@@ -100,6 +81,42 @@ AC_CACHE_CHECK(dnl
   fi
   rm -f conftest.c conftest.exe]])
 AC_CACHE_CHECK(dnl
+[for patchable ldscripts/i386pe.x script for $WINCC],dnl
+[lfanew_cv_prog_wincc_ldscripts_i386pe_x],[dnl
+  [script=`$WINCC -print-file-name=ldscripts/i386pe.x`
+  lfanew_cv_prog_wincc_ldscripts_i386pe_x=none
+  case "$script" in
+    ldscripts/i386pe.x)
+      ;;
+    *)
+      if $GREP ' \.text  *__image_base__ + .* : *$' "$script" >/dev/null 2>&1
+      then
+        ]AC_LANG_CONFTEST([AC_LANG_SOURCE([[int main (void) { return 0; }]])])[
+        if $WINCC $WINCFLAGS -T "$script" -o conftest.exe conftest.c $WINLIBS \
+	   >&]AS_MESSAGE_LOG_FD[ 2>&1; then
+	  lfanew_cv_prog_wincc_ldscripts_i386pe_x="$script"
+	fi
+      fi;;
+  esac]])
+AC_CACHE_CHECK(dnl
+[for patchable ldscripts/i386pep.x script for $WINCC],dnl
+[lfanew_cv_prog_wincc_ldscripts_i386pep_x],[dnl
+  [script=`$WINCC -print-file-name=ldscripts/i386pep.x`
+  lfanew_cv_prog_wincc_ldscripts_i386pep_x=none
+  case "$script" in
+    ldscripts/i386pep.x)
+      ;;
+    *)
+      if $GREP ' \.text  *__image_base__ + .* : *$' "$script" >/dev/null 2>&1
+      then
+        ]AC_LANG_CONFTEST([AC_LANG_SOURCE([[int main (void) { return 0; }]])])[
+        if $WINCC $WINCFLAGS -T "$script" -o conftest.exe conftest.c $WINLIBS \
+	   >&]AS_MESSAGE_LOG_FD[ 2>&1; then
+	  lfanew_cv_prog_wincc_ldscripts_i386pep_x="$script"
+	fi
+      fi;;
+  esac]])
+AC_CACHE_CHECK(dnl
 [whether $WINCC accepts -Wl,-align:],[lfanew_cv_prog_wincc_wl_align],[dnl
   AC_LANG_CONFTEST([AC_LANG_SOURCE([[int main (void) { return 0; }]])])
   [if $WINCC $WINCFLAGS -Wl,-align:0x8000 -o conftest.exe conftest.c \
@@ -123,6 +140,8 @@ AC_SUBST([WINCC])
 AC_SUBST([WINCFLAGS])
 AC_SUBST([WINLIBS])
 AC_SUBST([lfanew_cv_prog_wincc_wl_section_alignment])
+AC_SUBST([lfanew_cv_prog_wincc_ldscripts_i386pe_x])
+AC_SUBST([lfanew_cv_prog_wincc_ldscripts_i386pep_x])
 AC_SUBST([lfanew_cv_prog_wincc_wl_align])
 
 AC_CONFIG_TESTDIR([tests])

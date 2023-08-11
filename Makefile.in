@@ -1,29 +1,8 @@
 # Copyright (c) 2023 TK Chia
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#
-#   * Redistributions of source code must retain the above copyright notice,
-#     this list of conditions and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright
-#     notice, this list of conditions and the following disclaimer in the
-#     documentation and/or other materials provided with the distribution.
-#   * Neither the name of the developer(s) nor the names of its contributors
-#     may be used to endorse or promote products derived from this software
-#     without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DESTDIR =
 abs_srcdir = @abs_srcdir@
@@ -41,6 +20,7 @@ includedir = @includedir@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
+AWK = @AWK@
 
 CC = @CC@
 CPPFLAGS = @CPPFLAGS@ -I$(srcdir)/h -I$(objdir)/h
@@ -50,14 +30,26 @@ LIBS = @LIBS@
 OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 
+lfanew_cv_prog_wincc_ldscripts_i386pe_x \
+= @lfanew_cv_prog_wincc_ldscripts_i386pe_x@
+lfanew_cv_prog_wincc_ldscripts_i386pep_x \
+= @lfanew_cv_prog_wincc_ldscripts_i386pep_x@
+
 PROGRAMS = lfanew$(EXEEXT)
 HEADERS = h/lfanew/io.h \
 	  h/lfanew/_config.h \
 	  h/lfanew/_version.h \
 	  h/nexgen/mzendian.h \
 	  h/nexgen/mzhdr.h
+SCRIPTS =
+ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pe_x)"
+  SCRIPTS += i386pebc.x
+endif
+ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
+  SCRIPTS += i386pepbc.x
+endif
 
-default: $(PROGRAMS) $(HEADERS)
+default: $(PROGRAMS) $(HEADERS) $(SCRIPTS)
 .PHONY: default
 
 all: default
@@ -78,11 +70,11 @@ install: $(PROGRAMS) $(HEADERS)
 .PHONY: install
 
 clean mostlyclean:
-	$(RM) *.[oa] $(PROGRAMS) *~
+	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) *~
 .PHONY: clean mostlyclean
 
 distclean maintainer-clean: clean
-	$(RM) Makefile config.cache config.log config.status
+	$(RM) Makefile config.cache config.log config.status h/lfanew/_*.h
 .PHONY: distclean maintainer-clean
 
 check check-local: tests/testsuite
@@ -107,6 +99,14 @@ lfanew.$(OBJEXT): lfanew.c $(HEADERS)
 
 %$(EXEEXT): %.o
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) $(LIBS) -o $@
+
+i386pebc.x: patch-lds.awk $(lfanew_cv_prog_wincc_ldscripts_i386pe_x)
+	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pe_x) >$@.tmp
+	mv $@.tmp $@
+
+i386pepbc.x: patch-lds.sed $(lfanew_cv_prog_wincc_ldscripts_i386pep_x)
+	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pep_x) >$@.tmp
+	mv $@.tmp $@
 
 # Copy the generated tests/testsuite from the source directory to the build
 # directory, or create a symlink from the latter to the former --- but only

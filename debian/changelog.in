@@ -1,3 +1,10 @@
+lfanew (20230811-build20230811-2~@distro@) @distro@; urgency=medium
+
+  * Find a way to patch GNU linker scripts for PE/i386 & PE/x86-64 to
+    customize the starting RVA for the .text section.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 11 Aug 2023 18:11:26 +0000
+
 lfanew (20230808-build20230808-2~@distro@) @distro@; urgency=medium
 
   * Start switching license to Mozilla Public License 2.0.

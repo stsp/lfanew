@@ -29,12 +29,18 @@
 : ${NASM='@NASM@'}
 : ${DOSRUN='@DOSRUN@'}
 : ${WINRUN='@WINRUN@'}
+
 : ${WINCC='@WINCC@'}
 : ${WINCFLAGS='@WINCFLAGS@'}
 : ${WINLIBS='@WINLIBS@'}
 : ${lfanew_cv_prog_wincc_wl_section_alignment=\
 '@lfanew_cv_prog_wincc_wl_section_alignment@'}
+: ${lfanew_cv_prog_wincc_ldscripts_i386pe_x=\
+'@lfanew_cv_prog_wincc_ldscripts_i386pe_x@'}
+: ${lfanew_cv_prog_wincc_ldscripts_i386pep_x=\
+'@lfanew_cv_prog_wincc_ldscripts_i386pep_x@'}
 : ${lfanew_cv_prog_wincc_wl_align='@lfanew_cv_prog_wincc_wl_align@'}
+
 : ${CC='@CC@'}
 : ${CPPFLAGS='@CPPFLAGS@'}
 : ${CFLAGS='@CFLAGS@'}

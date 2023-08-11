@@ -2,11 +2,11 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: lfanew
 Source: <https://gitlab.com/tkchia/lfanew>
 
-Files: README.asciidoc h/lfanew/io.h
+Files: *
 Copyright: 2023 TK Chia
 License: MPL-2.0
 
-Files: *
+Files: lfanew.c *.m4 autogen.sh h/nexgen/mzendian.h h/nexgen/pehdr.h tests/*
 Copyright: 2023 TK Chia
 License: BSD-3-Clause
 
