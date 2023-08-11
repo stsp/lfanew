@@ -1,30 +1,9 @@
 /*
  * Copyright (c) 2023 TK Chia
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of the developer(s) nor the names of its
- *     contributors may be used to endorse or promote products derived from
- *     this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #include <errno.h>
@@ -439,6 +418,12 @@ is_two_power (ul_t value)
   return value != 0 && (value & (value - 1)) == 0;
 }
 
+static ul_t
+round_up_to_two_power (ul_t value, ul_t multiple)
+{
+  return (value + multiple - 1) & -multiple;
+}
+
 static void
 pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust)
 {
@@ -456,7 +441,7 @@ static void
 copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 {
   uint32_t inh_size, aligned_inh_size, outh_size, aligned_outh_size,
-	   inh_slack, outh_slack, file_align, adjust;
+	   inh_slack, outh_slack, file_align, sect_align, adjust;
   pe_img_fil_hdr_t fhdr;
   pe_img_opt_hdr_t ophdr;
   uint16_t ophdr_size, ophdr_magic, num_sects;
@@ -498,6 +483,9 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   file_align = leh32 (ophdr.h.FileAlignment);
   if (! is_two_power (file_align))
     error ("PE FileAlignment %#lx not power of 2", (ul_t) file_align);
+  sect_align = leh32 (ophdr.h.SectionAlignment);
+  if (! is_two_power (sect_align))
+    error ("PE SectionAlignment %#lx not power of 2", (ul_t) sect_align);
   num_sects = leh16 (fhdr.NumberOfSections);
 
   inh_size = (uint32_t) ophdr_size + (uint32_t) num_sects * sizeof (sect);
@@ -514,7 +502,7 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
     error ("PE SizeOfHeaders overshoots file end, %#lx > %#lx",
 	   (ul_t) (aligned_inh_size - in_off), (ul_t) sz);
 
-  aligned_outh_size = (outh_size + file_align - 1) & -file_align;
+  aligned_outh_size = round_up_to_two_power (outh_size, file_align);
   if (aligned_outh_size < outh_size)
     error ("output PE headers will be too large, %#lx + %#lx > 4 GiB",
 	   (ul_t) outh_size, (ul_t) file_align);
@@ -602,6 +590,32 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
       rva = leh32 (sect.VirtualAddress);
       if (rva == 0)
 	warn ("section #%#x has suspicious RVA of 0", (ui_t) i);
+      else if (i == 1
+	       && leh32 (sect.SizeOfRawData) == 0
+	       && (leh32 (sect.Characteristics)
+		   & (IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA
+		      | IMAGE_SCN_CNT_UNINITIALIZED_DATA))
+		  == IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+	{
+	  /*
+	   * The first section is a "slack space" section which only contains
+	   * uninitialized data.  Adjust its starting RVA and size so that
+	   * it just fills the "gap" between the end of the headers & the
+	   * section itself.
+	   */
+	  uint32_t sect_aligned_outh_size
+	    = round_up_to_two_power (outh_size, sect_align);
+	  uint32_t end_rva = rva + leh32 (sect.VirtualSize);
+	  if (! sect_aligned_outh_size)
+	    error ("not enough RVA space for slack section, PE headers "
+		   "are almost 4 GiB");
+	  if (sect_aligned_outh_size > end_rva)
+	    error ("not enough RVA space for slack section, %#lx < %#lx",
+		   (ul_t) end_rva, (ul_t) sect_aligned_outh_size);
+	  rva = sect_aligned_outh_size;
+	  sect.VirtualAddress = hle32 (rva);
+	  sect.VirtualSize = hle32 (end_rva - rva);
+	}
       else if (rva < min_used_rva)
 	min_used_rva = rva;
 
@@ -692,7 +706,7 @@ lfanew (void)
   if (tot_sz > (ul_t) UINT32_MAX - MZ_PARA_SZ + 1)
     error ("input file too large, %#lx > 4 GiB - %#x",
 	   tot_sz, (ui_t) MZ_PARA_SZ);
-  aligned_tot_sz = (tot_sz + MZ_PARA_SZ - 1) & -(ul_t) MZ_PARA_SZ;
+  aligned_tot_sz = round_up_to_two_power (tot_sz, MZ_PARA_SZ);
 
   lfarlc = leh16 (mz.e_lfarlc);
   if (lfarlc >= MZ_LFARLC_NEW - sizeof (uint32_t))
@@ -714,7 +728,7 @@ lfanew (void)
     error ("cannot read optional header information");
 
   new_rels_end = MZ_LFARLC_NEW + (uint32_t) crlc * MZ_RELOC_SZ;
-  new_hdr_end = (new_rels_end + MZ_PARA_SZ - 1) & -(uint32_t) MZ_PARA_SZ;
+  new_hdr_end = round_up_to_two_power (new_rels_end, MZ_PARA_SZ);
   new_mz_sz = mz_sz - hdr_end + new_hdr_end;
   if (mz_sz == tot_sz)
     {

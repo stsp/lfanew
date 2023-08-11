@@ -6,7 +6,7 @@ Files: *
 Copyright: 2023 TK Chia
 License: MPL-2.0
 
-Files: lfanew.c *.m4 autogen.sh h/nexgen/mzendian.h h/nexgen/pehdr.h tests/*
+Files: *.m4 autogen.sh h/nexgen/mzendian.h tests/*
 Copyright: 2023 TK Chia
 License: BSD-3-Clause
 

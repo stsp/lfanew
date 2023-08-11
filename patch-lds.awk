@@ -8,6 +8,10 @@
 # Script to patch the GNU linker scripts for PE/i386 and PE/x86-64 to allow
 # the starting RVA of the .text section to be customized.
 
+BEGIN {
+  print "/****** AUTOMATICALLY PATCHED ******/"
+}
+
 / \.text  *__image_base__ \+ .* : *$/ && ! /__base_of_code__/ {
   print "  __base_of_code__ = DEFINED (__base_of_code__)"
   print "		      ? __base_of_code__ : .;"
