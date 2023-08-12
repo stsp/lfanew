@@ -1,5 +1,6 @@
 *~
 *.[oa]
-*.exe
+/*.exe
 autom4te.cache
 /lfanew
+/build

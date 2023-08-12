@@ -34,14 +34,15 @@ case "$OS" in
   windows)
     # Download & install nasm.  This follows https://github.com/vim/vim-win32
     # -installer/blob/507d8257c76afa87e2b753b46ae3cd479f9d1f0b/appveyor.bat .
-    curl -f -L https://cygwin.com/setup-x86_64.exe -o ./setup-x86_64.exe
-    chmod +x ./setup-x86_64.exe
-    ./setup-x86_64.exe -qnNdO -P nasm
-    # Download & install Takeda's MS-DOS Player, takeda-toshiya.my.coocan.jp/
-    # msdos/ .  The caller script is expected to add the correct directory to
-    # the %PATH%.
-    curl -f -L http://takeda-toshiya.my.coocan.jp/msdos/msdos.7z -o ./msdos.7z
-    7z x ./msdos.7z;;
+    if test \! -f ./3rd-party/setup-x86_64.exe; then
+      curl -f -L https://cygwin.com/setup-x86_64.exe \
+	   -o ./3rd-party/setup-x86_64.exe
+      chmod +x ./3rd-party/setup-x86_64.exe
+    fi
+    ./3rd-party/setup-x86_64.exe -qnNdO -P nasm
+    # Unpack Takeda's MS-DOS Player, takeda-toshiya.my.coocan.jp/msdos/ .
+    # The caller script is expected to add the correct directory to %PATH%.
+    7z x ./3rd-party/msdos.7z;;
   *)
     apt-get update -y
     apt-get install -y software-properties-common
