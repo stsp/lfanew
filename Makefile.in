@@ -43,10 +43,10 @@ HEADERS = h/lfanew/io.h \
 	  h/nexgen/mzhdr.h
 SCRIPTS =
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pe_x)"
-  SCRIPTS += i386pebc.x
+  SCRIPTS += ldscripts/i386pebc.x
 endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
-  SCRIPTS += i386pepbc.x
+  SCRIPTS += ldscripts/i386pepbc.x
 endif
 
 default: $(PROGRAMS) $(HEADERS) $(SCRIPTS)
@@ -100,11 +100,14 @@ lfanew.$(OBJEXT): lfanew.c $(HEADERS)
 %$(EXEEXT): %.o
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) $(LIBS) -o $@
 
-i386pebc.x: patch-lds.awk $(lfanew_cv_prog_wincc_ldscripts_i386pe_x)
+ldscripts/i386pebc.x: patch-lds.awk $(lfanew_cv_prog_wincc_ldscripts_i386pe_x)
+	mkdir -p $(@D)
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pe_x) >$@.tmp
 	mv $@.tmp $@
 
-i386pepbc.x: patch-lds.sed $(lfanew_cv_prog_wincc_ldscripts_i386pep_x)
+ldscripts/i386pepbc.x: patch-lds.awk \
+		       $(lfanew_cv_prog_wincc_ldscripts_i386pep_x)
+	mkdir -p $(@D)
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pep_x) >$@.tmp
 	mv $@.tmp $@
 

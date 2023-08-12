@@ -48,4 +48,6 @@
 
 #undef _LFANEW_INTERNAL_HAVE__SETMODE
 
+#undef _LFANEW_INTERNAL_HAVE_IO_H
+
 #endif

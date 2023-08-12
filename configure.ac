@@ -52,7 +52,7 @@ case "$host" in
     : ${WINRUN=}
     AC_CHECK_PROGS(WINCC,
 		   [i686-mingw32-gcc mingw32-gcc ]dnl
-		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], $CC)
+		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], "$CC")
     ;;
   *)
     AC_PATH_PROG(WINRUN, wine, /bin/false)
@@ -89,7 +89,7 @@ AC_CACHE_CHECK(dnl
     ldscripts/i386pe.x)
       ;;
     *)
-      if $GREP ' \.text  *__image_base__ + .* : *$' "$script" >/dev/null 2>&1
+      if $GREP '^ *\.text  *__image_base__ + .* : *$' "$script" >/dev/null 2>&1
       then
         ]AC_LANG_CONFTEST([AC_LANG_SOURCE([[int main (void) { return 0; }]])])[
         if $WINCC $WINCFLAGS -T "$script" -o conftest.exe conftest.c $WINLIBS \
@@ -107,7 +107,7 @@ AC_CACHE_CHECK(dnl
     ldscripts/i386pep.x)
       ;;
     *)
-      if $GREP ' \.text  *__image_base__ + .* : *$' "$script" >/dev/null 2>&1
+      if $GREP '^ *\.text  *__image_base__ + .* : *$' "$script" >/dev/null 2>&1
       then
         ]AC_LANG_CONFTEST([AC_LANG_SOURCE([[int main (void) { return 0; }]])])[
         if $WINCC $WINCFLAGS -T "$script" -o conftest.exe conftest.c $WINLIBS \

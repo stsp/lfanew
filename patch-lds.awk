@@ -12,18 +12,19 @@ BEGIN {
   print "/****** AUTOMATICALLY PATCHED ******/"
 }
 
-/ \.text  *__image_base__ \+ .* : *$/ && ! /__base_of_code__/ {
+/^ *\.text  *__image_base__ \+ .* : *$/ && ! /__base_of_code__/ {
+  slack_def = $0
+  sub (/^ *\.text  */, "  __lfanew_slack_base = ", slack_def)
+  sub (/: *$/, ";", slack_def)
+  print slack_def
   print "  __base_of_code__ = DEFINED (__base_of_code__)"
-  print "		      ? __base_of_code__ : .;"
+  print "		      ? __base_of_code__ : __lfanew_slack_base;"
   print "  __base_of_code__ = ALIGN (__base_of_code__, __section_alignment__);"
-  sub (/ \.text/, " .slack")
-  print
+  print "  .slack __lfanew_slack_base :"
   print "  {"
-  print "    . += __base_of_code__ - __section_alignment__;"
+  print "    . += __image_base__ + __base_of_code__ - __lfanew_slack_base;"
   print "  }"
-  sub (/ \.slack/, " .text")
-  gsub (/__section_alignment__/, "__base_of_code__")
-  print
+  print "  .text __image_base__ + __base_of_code__ :"
   next
 }
 

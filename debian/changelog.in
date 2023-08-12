@@ -1,3 +1,11 @@
+lfanew (20230812-build20230812-2~@distro@) @distro@; urgency=medium
+
+  * patch-lds.awk: simplify linker script patching.
+  * Look for <io.h> at autoconf time.
+  * Other minor changes.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Sat, 12 Aug 2023 22:36:48 +0000
+
 lfanew (20230811-build20230811-2~@distro@) @distro@; urgency=medium
 
   * Find a way to patch GNU linker scripts for PE/i386 & PE/x86-64 to

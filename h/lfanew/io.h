@@ -11,10 +11,10 @@
 
 #include <lfanew/_config.h>
 #include <fcntl.h>
-#ifdef __unix__
-# include <unistd.h>
-#else
+#ifdef _LFANEW_INTERNAL_HAVE_IO_H
 # include <io.h>
+#else
+# include <unistd.h>
 #endif
 
 static int
