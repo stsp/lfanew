@@ -32,17 +32,20 @@
 set -e -v
 case "$OS" in
   windows)
-    # Download & install nasm.  This follows https://github.com/vim/vim-win32
-    # -installer/blob/507d8257c76afa87e2b753b46ae3cd479f9d1f0b/appveyor.bat .
-    if test \! -f ./3rd-party/setup-x86_64.exe; then
-      curl -f -L https://cygwin.com/setup-x86_64.exe \
-	   -o ./3rd-party/setup-x86_64.exe
-      chmod +x ./3rd-party/setup-x86_64.exe
+    # Unpack nasm & Takeda's MS-DOS Player.  Download these if necessary.
+    # The caller script is expected to add the correct directories to %PATH%.
+    pkg=nasm-2.16.01-win32.zip
+    if test \! -f ./3rd-party/"$pkg"; then
+      curl -f -L https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/win32/` \
+		 `"$pkg" -o ./3rd-party/"$pkg"
     fi
-    ./3rd-party/setup-x86_64.exe -qnNdO -P nasm
-    # Unpack Takeda's MS-DOS Player, takeda-toshiya.my.coocan.jp/msdos/ .
-    # The caller script is expected to add the correct directory to %PATH%.
-    7z x ./3rd-party/msdos.7z;;
+    7z x ./3rd-party/"$pkg"
+    pkg=msdos.7z
+    if test \! -f ./3rd-party/"$pkg"; then
+      curl -f -L http://takeda-toshiya.my.coocan.jp/msdos/"$pkg" \
+	   -o ./3rd-party/"$pkg"
+    fi
+    7z x ./3rd-party/"$pkg";;
   *)
     apt-get update -y
     apt-get install -y software-properties-common

@@ -1,3 +1,9 @@
+lfanew (20230813-build20230813-1~@distro@) @distro@; urgency=medium
+
+  * Minor changes for AppVeyor CI.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Sun, 13 Aug 2023 06:29:10 +0000
+
 lfanew (20230812-build20230812-2~@distro@) @distro@; urgency=medium
 
   * patch-lds.awk: simplify linker script patching.
