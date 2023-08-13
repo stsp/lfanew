@@ -128,7 +128,7 @@ m4_define([AT_LFANEW_MZSTUBNEW],[[
 %define MZ_PG_SZ	0x200
 %define MZ_PARA_SZ	0x10
 %define MZ_PSP_SZ	0x100
-%define MZ_LFARLC_NEW	0x3c
+%define MZ_LFARLC_NEW	0x40
 mz_start:
 	dw	0x5a4d						; .e_magic
 	dw	(mz_end - mz_start) % MZ_PG_SZ			; .e_cblp
@@ -143,7 +143,7 @@ mz_start:
 	dw	-((mz_hdr_end - mz_start) / MZ_PARA_SZ)		; .e_cs
 	dw	MZ_LFARLC_NEW					; .e_lfarlc
 	dw	0						; .e_ovno
-	times (MZ_LFARLC_NEW - ($ - mz_start)) db 0
+	times (MZ_LFARLC_NEW - 4 - ($ - mz_start)) db 0
 	dd	mz_end						; .e_lfanew
 mz_hdr_end:
 mz_msg:
