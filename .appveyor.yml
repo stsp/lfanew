@@ -27,7 +27,13 @@ image:
   - Ubuntu2004
 environment:
   matrix:
+    - AUTOCONF: CC=chibicc
     - AUTOCONF:
+# To my knowledge, chibicc has not been ported to Windows yet...
+matrix:
+  exclude:
+    - image: Visual Studio 2022
+      AUTOCONF: CC=chibicc
 for:
   -
     matrix:
@@ -39,7 +45,7 @@ for:
       - set PATH=%CD%\msdos\binary\i86_x64;%PATH%
       - set PATH=%CD%\nasm-2.16.01;%PATH%
       - set PATH=c:\cygwin64\bin;%PATH%
-      - bash ./tests/ci-base-setup.sh
+      - bash ./tests/ci-base-setup.sh %AUTOCONF%
   -
     matrix:
       only:
@@ -49,7 +55,7 @@ for:
       MAKE: make
     install:
       - sudo add-apt-repository -r -y ppa:rabbitmq/rabbitmq-erlang
-      - sudo bash ./tests/ci-base-setup.sh
+      - sudo bash -c "./tests/ci-base-setup.sh $AUTOCONF"
 build_script:
   - bash -c "./tests/ci-build-and-install.sh $AUTOCONF"
 test_script:

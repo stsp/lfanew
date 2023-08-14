@@ -1,3 +1,10 @@
+lfanew (20230814-build20230814-1~@distro@) @distro@; urgency=medium
+
+  * <nexgen/mzendian.h>: recognize macros __amd64__ etc.
+  * AppVeyor CI: also test with chibicc.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Mon, 14 Aug 2023 18:12:34 +0000
+
 lfanew (20230813-build20230813-1~@distro@) @distro@; urgency=medium
 
   * Minor changes for AppVeyor CI & tests.

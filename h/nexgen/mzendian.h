@@ -79,7 +79,9 @@ typedef union
 # if defined __BYTE_ORDER__ && defined __ORDER_LITTLE_ENDIAN__ \
      && __BYTE_ORDER__ - 0 == __ORDER_LITTLE_ENDIAN__ - 0
 #   define _NEXGEN_MZENDIAN_ASSUME_LE
-# elif defined __i386__ || defined __i386 || defined __386__ \
+# elif defined __amd64__ || defined __amd64 \
+       || defined __x86_64__ || defined __x86_64 \
+       || defined __i386__ || defined __i386 || defined __386__ \
        || defined __i86__ || defined __i86 || defined __I86__ \
        || defined __ARMEL__ || defined __AARCH64EL__
 #   define _NEXGEN_MZENDIAN_ASSUME_LE

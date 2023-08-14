@@ -30,6 +30,7 @@
 # CI (https://ci.appveyor.com/), invoked by .appveyor.yml .
 
 set -e -v
+AUTOCONF="$*"
 case "$OS" in
   windows)
     # Unpack nasm & Takeda's MS-DOS Player.  Download these if necessary.
@@ -47,13 +48,16 @@ case "$OS" in
     fi
     7z x ./3rd-party/"$pkg";;
   *)
-    apt-get update -y
     apt-get install -y software-properties-common
     # add-apt-repository may sometimes time out trying to download the PPA's
     # public key.
     add-apt-repository -y ppa:tkchia/de-rebus \
      || apt-key add tests/ppa-pub-key.gpg.bin
     apt-get update -y
-    apt-get install -y dos2unix nasm emu2.dmsc autoconf make wine \
-		       gcc-mingw-w64-i686;;
+    set -- dos2unix nasm emu2.dmsc autoconf make wine gcc-mingw-w64-i686
+    case "$AUTOCONF:$CC" in
+      *chibicc*)
+	set -- chibicc "$@";;
+    esac
+    apt-get install -y "$@";;
 esac
