@@ -29,6 +29,16 @@
 : ${NASM='@NASM@'}
 : ${DOSRUN='@DOSRUN@'}
 : ${WINRUN='@WINRUN@'}
+: ${HOSTRUN='@HOSTRUN@'}
+if test -z "$DOSRUN"; then
+  unset DOSRUN
+fi
+if test -z "$WINRUN"; then
+  unset WINRUN
+fi
+if test -z "$HOSTRUN"; then
+  unset HOSTRUN
+fi
 
 : ${WINCC='@WINCC@'}
 : ${WINCFLAGS='@WINCFLAGS@'}
@@ -46,3 +56,6 @@
 : ${CFLAGS='@CFLAGS@'}
 : ${LDFLAGS='@LDFLAGS@'}
 : ${LIBS='@LIBS@'}
+: ${EXEEXT='@EXEEXT@'}
+
+: ${ac_cv_func_scandir='@ac_cv_func_scandir@'}

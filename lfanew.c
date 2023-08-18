@@ -903,7 +903,7 @@ basenm (const char *path)
   const char *p = path, *q = path;
   char c;
   while ((c = *p++) != 0)
-    if (c == '/')
+    if (c == '/' || c == '\\')
       q = p;
   return q;
 }

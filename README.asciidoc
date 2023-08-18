@@ -49,53 +49,69 @@ Options:
 
 === Legend
 
+:fn-ieee-08: footnote:ieee-08[Institute of Electrical and Electronics Engineers, and The Open Group.  IEEE Std 1003.1™-2008,  2008. https://pubs.opengroup.org/onlinepubs/9699919799.2008edition/.]
+
+[cols=">1,9"]
+|===
+| Compat. | Meaning
+
+|     P08 | Part of the POSIX.1-2008{fn-ieee-08} standard.
+|       X | `lfanew`-specific extension.
+|===
+
 [cols=">1,9"]
 |===
 | Avail. | Meaning
 
-|      = | Facility is available for all platforms.
-|     64 | Facility is available only if the C compiler directly support 64-bit integers (``uint64_t`` etc.).
+|      = | Facility is available for all host platforms.
+|    (=) | Facility is available if the host platform does not already define this facility itself.
+|     64 | Facility is available only if the host C compiler directly support 64-bit integers (``uint64_t`` etc.).
 |===
 
 === Types
 
-[cols=">1,3,3"]
+[cols=">1,>1,<3,<3"]
 |===
-|Avail. <| Type <| Notes
+|Compat. |Avail. <| Type <| Notes
 
-|     2+a| **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
+2+|           2+<a| **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
 
-		* **This header defines types and routines for accessing unaligned little endian binary data in a type-checked manner.**
-		* **``<nexgen/mzendian.h>`` also includes ``<stdint.h>``.**
+			* **This header defines types and routines for accessing unaligned little endian binary data in a type-checked manner.**
+			* **``<nexgen/mzendian.h>`` also includes ``<stdint.h>``.**
 
-|      = | ``uint_le16_t`` .3+| Unaligned 16-, 32-, or 64-bit little endian binary numeral.  These types can be used directly inside a ``struct`` or ``union`` corresponding to a binary file structure, but should otherwise be treated as opaque.
-|      = | ``uint_le32_t``
-|      = | ``uint_le64_t``
-3+|
-|      2+| **``▗▚▚▚▚ <nexgen/mzhdr.h> ▞▞▞▞▖``**
-|      = | ``mz_hdr_t`` | ``MZ`` structure{fn-pietrek-19} at the beginning of an MS-DOS or Windows program.
+|      X |      = | ``uint_le16_t`` .3+| Unaligned 16-, 32-, or 64-bit little endian binary numeral.  These types can be used directly inside a ``struct`` or ``union`` corresponding to a binary file structure, but should otherwise be treated as opaque.
+|      X |      = | ``uint_le32_t``
+|      X |      = | ``uint_le64_t``
+4+|
+2+|            2+<| **``▗▚▚▚▚ <nexgen/mzhdr.h> ▞▞▞▞▖``**
+|      X |      = | ``mz_hdr_t`` | ``MZ`` structure{fn-pietrek-19} at the beginning of an MS-DOS or Windows program.
 |===
 
 === Functions
 
-[cols=">1,3,3"]
+[cols=">1,>1,<3,<3"]
 |===
-|Avail. <| Function <| Notes
+|Compat. |Avail. <| Function <| Notes
 
-|     2+a| **``▗▚▚▚▚ <lfanew/io.h> ▞▞▞▞▖``**
-|      = | ``_binmode (``__handle__``);`` a|
-		* Sets the POSIX-style file __handle__ to do untranslated (binary) I/O — so that ``read`` and ``write`` calls with the __handle__ will not translate between LF and CRLF, nor specially interpret bytes that look like end-of-file indicators.
-		* Upon an error, this function returns -1 and sets ``errno``.
-3+|
-|     2+a| **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
-|      = | ``uint_le16_t hle16 (uint16_t``{nbsp}__x__``);`` .3+| Converts __x__ from host byte order to little endian.
-|      = | ``uint_le32_t hle32 (uint32_t``{nbsp}__x__``);``
-|     64 | ``uint_le64_t hle64 (uint64_t``{nbsp}__x__``);``
-|      = | ``uint16_t leh16 (uint_le16_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order.
-|      = | ``uint32_t leh32 (uint_le32_t``{nbsp}__x__``);``
-|      = | ``uint16_t leh32hi (uint_le32_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 16-bit half respectively.
-|      = | ``uint16_t leh32lo (uint_le32_t``{nbsp}__x__``);``
-|     64 | ``uint64_t leh64 (uint_le64_t``{nbsp}__x__``);`` | Converts __x__ from little endian to host byte order.
-|      = | ``uint32_t leh64hi (uint_le64_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 32-bit half respectively.
-|      = | ``uint32_t leh64lo (uint_le64_t``{nbsp}__x__``);``
+2+|           2+<a| **``▗▚▚▚▚ <lfanew/dirent.h> ▞▞▞▞▖``**
+|    P08 |    (=) | ``scandir (``*__path__``,`` *__names__``,`` *__filt__``,`` *__comp__``);`` a|
+			* Scans the directory given by __path__, filters them with __filt__, then returns a ``malloc``'d list of directory entries in *__names__ sorted with the comparator __comp__.
+			* (POSIX places this function in ``<dirent.h>``.)
+4+|
+2+|            2+<| **``▗▚▚▚▚ <lfanew/io.h> ▞▞▞▞▖``**
+|      X |      = | ``_binmode (``__handle__``);`` a|
+			* Sets the POSIX-style file __handle__ to do untranslated (binary) I/O — so that ``read`` and ``write`` calls with the __handle__ will not translate between LF and CRLF, nor specially interpret bytes that look like end-of-file indicators.
+			* Upon an error, this function returns -1 and sets ``errno``.
+4+|
+2+|            2+<| **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
+|      X |      = | ``uint_le16_t hle16 (uint16_t``{nbsp}__x__``);`` .3+| Converts __x__ from host byte order to little endian.
+|      X |      = | ``uint_le32_t hle32 (uint32_t``{nbsp}__x__``);``
+|      X |     64 | ``uint_le64_t hle64 (uint64_t``{nbsp}__x__``);``
+|      X |      = | ``uint16_t leh16 (uint_le16_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order.
+|      X |      = | ``uint32_t leh32 (uint_le32_t``{nbsp}__x__``);``
+|      X |      = | ``uint16_t leh32hi (uint_le32_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 16-bit half respectively.
+|      X |      = | ``uint16_t leh32lo (uint_le32_t``{nbsp}__x__``);``
+|      X |     64 | ``uint64_t leh64 (uint_le64_t``{nbsp}__x__``);`` | Converts __x__ from little endian to host byte order.
+|      X |      = | ``uint32_t leh64hi (uint_le64_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 32-bit half respectively.
+|      X |      = | ``uint32_t leh64lo (uint_le64_t``{nbsp}__x__``);``
 |===

@@ -29,9 +29,11 @@ environment:
   matrix:
     - AUTOCONF: CC=chibicc
     - AUTOCONF:
-# To my knowledge, chibicc has not been ported to Windows yet...
+    # Try cross-compiling to Windows/x86-32.
+    - AUTOCONF: --host=i686-w64-mingw32
 matrix:
   exclude:
+    # To my knowledge, chibicc has not been ported to Windows yet...
     - image: Visual Studio 2022
       AUTOCONF: CC=chibicc
 for:

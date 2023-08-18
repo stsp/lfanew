@@ -25,13 +25,16 @@ dnl LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 dnl NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 dnl SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-m4_define([AT_LFANEW_TOOL],["$abs_top_builddir"/lfanew])
-m4_define([AT_LFANEW_AAIN],[./a.asm])
-m4_define([AT_LFANEW_ACIN],[./a.c])
-m4_define([AT_LFANEW_AOUT],[./a.exe])
-m4_define([AT_LFANEW_A2OUT],[./a2.exe])
-m4_define([AT_LFANEW_A3OUT],[./a3.exe])
-m4_define([AT_LFANEW_TMP],[./a.tmp])
+m4_define([AT_LFANEW_TOOL],[["$abs_top_builddir"/lfanew"$EXEEXT"]])
+m4_define([AT_LFANEW_AAIN],[[./a.asm]])
+m4_define([AT_LFANEW_ACIN],[[./a.c]])
+m4_define([AT_LFANEW_AOUT_DIRNAME],[[.]])
+m4_define([AT_LFANEW_AOUT_BASENAME],[[a.exe]])
+m4_define([AT_LFANEW_AOUT],[AT_LFANEW_AOUT_DIRNAME[/]AT_LFANEW_AOUT_BASENAME])
+m4_define([AT_LFANEW_A2OUT],[[./a2.exe]])
+m4_define([AT_LFANEW_A3OUT],[[./a3.exe]])
+m4_define([AT_LFANEW_TMP],[[./a.tmp]])
+m4_define([AT_LFANEW_LIBRARIES],[["$abs_top_builddir"/a/libfanew.a]])
 
 dnl $1 = text of program to assemble
 m4_define([AT_LFANEW_BINASM],[dnl
@@ -68,25 +71,26 @@ dnl $2 = extra compiler options
 m4_define([AT_LFANEW_HOSTCC],[dnl
 AT_DATA([AT_LFANEW_ACIN],[$1])
 AT_CHECK([[$CC $CPPFLAGS -I"$abs_top_builddir"/h -I"$abs_top_srcdir"/h] dnl
-[$CFLAGS $LDFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN [$LIBS]],,dnl
-[[ignore]],[[ignore]])])
+[$CFLAGS $LDFLAGS -o]AT_LFANEW_AOUT $2 AT_LFANEW_ACIN dnl
+AT_LFANEW_LIBRARIES [$LIBS]],,[[ignore]],[[ignore]])])
 
 dnl $1 = program to run
 dnl $2 = expected stdout output
 m4_define([AT_LFANEW_DOSRUN],[dnl
-AT_CHECK([["$DOSRUN"] $1 [>] AT_LFANEW_TMP ]dnl
+AT_CHECK([[${DOSRUN+"$DOSRUN"}] $1 [>] AT_LFANEW_TMP ]dnl
 	  [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])])
 
 dnl $1 = program to run
 dnl $2 = expected stdout output
 m4_define([AT_LFANEW_WINRUN],[dnl
-if test -z "$WINRUN"; then
-  AT_CHECK([$1 [>] AT_LFANEW_TMP ]dnl
-	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])
-else
-  AT_CHECK([["$WINRUN"] $1 [>] AT_LFANEW_TMP ]dnl
-	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])
-fi])
+AT_CHECK([[${WINRUN+"$WINRUN"}] $1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])])
+
+dnl $1 = program to run
+dnl $2 = expected stdout output
+m4_define([AT_LFANEW_HOSTRUN],[dnl
+AT_CHECK([[${HOSTRUN+"$HOSTRUN"}] $1 [>] AT_LFANEW_TMP ]dnl
+	   [[&& "$DOS2UNIX" <] AT_LFANEW_TMP],,[$2],[[ignore]])])
 
 dnl old-style MZ stub with only .e_cblp & .e_cp
 m4_define([AT_LFANEW_MZSTUB],[[

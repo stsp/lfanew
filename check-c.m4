@@ -50,3 +50,12 @@ AC_CHECK_DECL([_O_U16TEXT],
 	      [#include <fcntl.h>])
 AC_CHECK_FUNC([_setmode],[AC_DEFINE([_LFANEW_INTERNAL_HAVE__SETMODE],[1])])
 AC_CHECK_HEADER([io.h],[AC_DEFINE([_LFANEW_INTERNAL_HAVE_IO_H],[1])])
+AC_CHECK_FUNC([scandir],[AC_DEFINE([_LFANEW_INTERNAL_HAVE_SCANDIR],[1])])
+AC_CHECK_MEMBER([struct dirent.d_namlen],dnl
+  [AC_DEFINE([_LFANEW_INTERNAL_HAVE_STRUCT_DIRENT_D_NAMLEN],[1])],,dnl
+  [#include <dirent.h>])
+AC_CHECK_MEMBER([struct dirent.d_reclen],dnl
+  [AC_DEFINE([_LFANEW_INTERNAL_HAVE_STRUCT_DIRENT_D_RECLEN],[1])],,dnl
+  [#include <dirent.h>])
+
+AC_SUBST(ac_cv_func_scandir)

@@ -16,6 +16,7 @@ exec_prefix = @exec_prefix@
 
 bindir = @bindir@
 includedir = @includedir@
+libdir = @libdir@
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -29,6 +30,8 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
+AR = @AR@
+RANLIB = @RANLIB@
 
 lfanew_cv_prog_wincc_ldscripts_i386pe_x \
 = @lfanew_cv_prog_wincc_ldscripts_i386pe_x@
@@ -36,12 +39,18 @@ lfanew_cv_prog_wincc_ldscripts_i386pep_x \
 = @lfanew_cv_prog_wincc_ldscripts_i386pep_x@
 
 PROGRAMS = lfanew$(EXEEXT)
-HEADERS = h/lfanew/io.h \
+LIBRARIES = a/libfanew.a
+HEADERS = h/lfanew/dirent.h \
+	  h/lfanew/io.h \
 	  h/lfanew/_config.h \
 	  h/lfanew/_version.h \
 	  h/nexgen/mzendian.h \
 	  h/nexgen/mzhdr.h
+LIBOBJS = a/direntdup.$(OBJEXT)
 SCRIPTS =
+ifeq "no" "@ac_cv_func_scandir@"
+  LIBOBJS += a/scandir.$(OBJEXT)
+endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pe_x)"
   SCRIPTS += ldscripts/i386pebc.x
 endif
@@ -49,16 +58,16 @@ ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
   SCRIPTS += ldscripts/i386pepbc.x
 endif
 
-default: $(PROGRAMS) $(HEADERS) $(SCRIPTS)
+default: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS)
 .PHONY: default
 
 all: default
 .PHONY: all
 
-install: $(PROGRAMS) $(HEADERS)
-	$(mkinstalldirs) $(DESTDIR)$(bindir) \
+install: $(PROGRAMS) $(HEADERS) $(LIBRARIES)
+	$(mkinstalldirs) $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) \
 	  $(sort $(dir $(HEADERS:h/%=$(DESTDIR)$(includedir)/%)))
-	$(INSTALL_PROGRAM) $(filter-out %.h,$^) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(filter-out %.h %.a,$^) $(DESTDIR)$(bindir)
 	set -e; \
 	for h in $(HEADERS:h/%=%); do \
 	  if test -f h/"$$h"; then \
@@ -67,10 +76,17 @@ install: $(PROGRAMS) $(HEADERS)
 	    $(INSTALL_DATA) $(srcdir)/h/"$$h" $(DESTDIR)$(includedir)/"$$h"; \
 	  fi; \
 	done
+	for a in $(LIBRARIES:a/%=%); do \
+	  if test -f a/"$$a"; then \
+	    $(INSTALL_DATA) a/"$$a" $(DESTDIR)$(libdir)/"$$a"; \
+	  else \
+	    $(INSTALL_DATA) $(srcdir)/a/"$$a" $(DESTDIR)$(libdir)/"$$a"; \
+	  fi; \
+	done
 .PHONY: install
 
 clean mostlyclean:
-	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) *~
+	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) $(OBJS) $(LIBRARIES) *~
 .PHONY: clean mostlyclean
 
 distclean maintainer-clean: clean
@@ -95,10 +111,24 @@ listcheck: tests/testsuite
 
 lfanew$(EXEEXT): lfanew.$(OBJEXT)
 
-lfanew.$(OBJEXT): lfanew.c $(HEADERS)
+%.$(OBJEXT): %.c $(HEADERS)
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(TARGET_ARCH) -c $< -o $@
 
-%$(EXEEXT): %.o
+# NOTE: $(LIBRARIES) is for any library files built in this project, while
+# $(LDLIBS) & $(LIBS) are for pre-existing system libraries.  GNU autoconf &
+# automake apparently use the names $(LIBRARIES) & $(LIBS) the same ways.
+%$(EXEEXT): %.$(OBJEXT) $(LIBRARIES)
 	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) $(LIBS) -o $@
+
+a/libfanew.a: $(LIBOBJS)
+	$(RM) $@
+	$(AR) cq $@ $^
+	$(RANLIB) $@
+
+# Cancel GNU make's built-in implicit rules.
+%.$(OBJEXT): %.c
+%$(EXEEXT): %.$(OBJEXT)
 
 ldscripts/i386pebc.x: patch-lds.awk $(lfanew_cv_prog_wincc_ldscripts_i386pe_x)
 	mkdir -p $(@D)

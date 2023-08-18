@@ -44,10 +44,12 @@ AC_PROG_GREP
 AC_PROG_AWK
 AC_LANG_WERROR
 AC_PROG_CC
+AC_PATH_TOOL(AR, ar, /bin/false)
+AC_PATH_TOOL(RANLIB, ranlib, :)
 if test yes = "$GCC"; then
   CFLAGS="-Wall $CFLAGS"
 fi
-case "$host" in
+case "$build" in
   *-cygwin* | *-mingw32* | *-mingw64* | *-msys* | *-windows* | *-winnt*)
     : ${WINRUN=}
     AC_CHECK_PROGS(WINCC,
@@ -60,6 +62,12 @@ case "$host" in
 		   [i686-mingw32-gcc mingw32-gcc ]dnl
 		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], /bin/false)
     ;;
+esac
+case "$host" in
+  *-cygwin* | *-mingw32* | *-mingw64* | *-msys* | *-windows* | *-winnt*)
+    : ${HOSTRUN="$WINRUN"} ;;
+  *)
+    : ${HOSTRUN=} ;;
 esac
 if test x"$CC" = x"$WINCC"; then
   : ${WINCFLAGS="$CPPFLAGS $CFLAGS $LDFLAGS -s"}
@@ -139,6 +147,7 @@ AC_SUBST([WINRUN])
 AC_SUBST([WINCC])
 AC_SUBST([WINCFLAGS])
 AC_SUBST([WINLIBS])
+AC_SUBST([HOSTRUN])
 AC_SUBST([lfanew_cv_prog_wincc_wl_section_alignment])
 AC_SUBST([lfanew_cv_prog_wincc_ldscripts_i386pe_x])
 AC_SUBST([lfanew_cv_prog_wincc_ldscripts_i386pep_x])
