@@ -17,6 +17,7 @@ exec_prefix = @exec_prefix@
 bindir = @bindir@
 includedir = @includedir@
 libdir = @libdir@
+build3dir = 3rd-party.build
 
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -32,6 +33,9 @@ OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 AR = @AR@
 RANLIB = @RANLIB@
+
+WINCC = @WINCC@
+WINCXX = @WINCXX@
 
 lfanew_cv_prog_wincc_ldscripts_i386pe_x \
 = @lfanew_cv_prog_wincc_ldscripts_i386pe_x@
@@ -86,7 +90,8 @@ install: $(PROGRAMS) $(HEADERS) $(LIBRARIES)
 .PHONY: install
 
 clean mostlyclean:
-	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) $(OBJS) $(LIBRARIES) *~
+	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) $(OBJS) $(LIBRARIES) \
+	      $(build3dir) *~
 .PHONY: clean mostlyclean
 
 distclean maintainer-clean: clean
@@ -140,6 +145,23 @@ ldscripts/i386pepbc.x: patch-lds.awk \
 	mkdir -p $(@D)
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pep_x) >$@.tmp
 	mv $@.tmp $@
+
+$(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.baseofcode.patch \
+			     $(SCRIPTS)
+	mkdir -p $(@D)
+	$(RM) -r $(@D)/msdos
+	7z x -o$(@D) $<
+	dos2unix $(@D)/msdos/source/*.*
+	LC_ALL=C patch -d$(@D)/msdos -p1 <$(filter %.patch,$^)
+	$(MAKE) -C $(@D)/msdos/source -f Makefile.mingw \
+		CC='$(WINCC)' CXX='$(WINCXX)' LDFLAGS_EXTRA='$(LDFLAGS_EXTRA)'\
+		i486
+	cp $(@D)/msdos/binary/msdos_i486.exe $@.tmp
+	mv $@.tmp $@
+
+$(build3dir)/msdos_i486.exe \
+ : LDFLAGS_EXTRA = -T'$(abspath $(SCRIPTS))' \
+		   -Wl,--defsym=__base_of_code__=0x80000
 
 # Copy the generated tests/testsuite from the source directory to the build
 # directory, or create a symlink from the latter to the former --- but only

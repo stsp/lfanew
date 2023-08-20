@@ -55,12 +55,18 @@ case "$build" in
     AC_CHECK_PROGS(WINCC,
 		   [i686-mingw32-gcc mingw32-gcc ]dnl
 		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], "$CC")
+    AC_CHECK_PROGS(WINCXX,
+		   [i686-mingw32-g++ mingw32-g++ ]dnl
+		   [i686-w64-mingw32-g++ x86_64-w64-mingw32-g++], "$CXX")
     ;;
   *)
     AC_PATH_PROG(WINRUN, wine, /bin/false)
     AC_CHECK_PROGS(WINCC,
 		   [i686-mingw32-gcc mingw32-gcc ]dnl
 		   [i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc], /bin/false)
+    AC_CHECK_PROGS(WINCXX,
+		   [i686-mingw32-g++ mingw32-g++ ]dnl
+		   [i686-w64-mingw32-g++ x86_64-w64-mingw32-g++], /bin/false)
     ;;
 esac
 case "$host" in
@@ -145,6 +151,7 @@ AC_PATH_PROGS(DOSRUN, [emu2 86sim msdos], /bin/false)
 AC_SUBST([lfanew_ackhost])
 AC_SUBST([WINRUN])
 AC_SUBST([WINCC])
+AC_SUBST([WINCXX])
 AC_SUBST([WINCFLAGS])
 AC_SUBST([WINLIBS])
 AC_SUBST([HOSTRUN])

@@ -1,0 +1,177 @@
+-*- coding: cp932; -*-
+diff -r -U2 msdos.orig/source/Makefile.mingw msdos/source/Makefile.mingw
+--- msdos.orig/source/Makefile.mingw	2017-02-17 22:20:00.000000000 +0000
++++ msdos/source/Makefile.mingw	2023-08-20 10:18:20.406669564 +0000
+@@ -1,4 +1,5 @@
+-# a `domestic' makefile for MS-DOS Player (for 20150108 build).
++# a `domestic' makefile for MS-DOS Player (for 20230820 build).
+ # 20150108 lpproj
++# 20230820 tkchia
+ #
+ 
+@@ -14,12 +15,12 @@
+ RM_F = rm -f
+ CP = cp
+-CC = gcc
+-CXX = g++ 
++CC = i686-w64-mingw32-gcc
++CXX = i686-w64-mingw32-g++ 
+ CFLAGS_OO=-o $@
+ CFLAGS_OX=-o $@
+-CFLAGS= -O3 -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Wno-sign-compare -fno-omit-frame-pointer -fno-strict-aliasing -D_MBCS -DNDEBUG -D_MT -DSUPPORT_DISASSEMBLER
++CFLAGS= -Os -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Wno-sign-compare -Wno-write-strings -fno-omit-frame-pointer -fno-strict-aliasing -finput-charset=cp932 -fexec-charset=cp932 -D_MBCS -DNDEBUG -D_MT -DSUPPORT_DISASSEMBLER
+ CXXFLAGS = $(CFLAGS)
+ LD = $(CXX)
+-LIBS = -lwinmm -lpsapi -lwsock32
++LIBS = -lwinmm -lpsapi -lwsock32 -lsetupapi -lgdi32 -lmpr -ldmoguids
+ LDFLAGS = -mconsole -s -static -static-libgcc
+ 
+@@ -50,4 +51,6 @@
+ 
+ 
++CFLAGS_I86 = $(CFLAGS) -I. -DHAS_I86
++CXXFLAGS_I86 = $(CFLAGS_I86) 
+ CFLAGS_I286 = $(CFLAGS) -I. -DHAS_I286
+ CXXFLAGS_I286 = $(CFLAGS_I286) 
+@@ -72,4 +75,5 @@
+ #TARGET_I386 = $(OUTD_BASE)i386$(D)msdos$(X)
+ #TARGET_I486 = $(OUTD_BASE)i486$(D)msdos$(X)
++TARGET_I86 = $(OUTD_BASE)msdos_i86$(X)
+ TARGET_I286 = $(OUTD_BASE)msdos_i286$(X)
+ TARGET_I386 = $(OUTD_BASE)msdos_i386$(X)
+@@ -136,5 +140,7 @@
+ 
+ 
+-all : i286 i386 i486
++all : i86 i286 i386 i486
++
++i86: $(TARGET_I86)
+ 
+ i286: $(TARGET_I286)
+@@ -144,4 +150,11 @@
+ i486: $(TARGET_I486)
+ 
++$(TARGET_I86) : $(SRCD_BASE)msdos.cpp $(SRCD_BASE)msdos.h $(SRCS_I86) $(SRCS_I86DASM)
++	$(CXX) $(CXXFLAGS_I86) $(CFLAGS_EXTRA) ¥
++		$(CFLAGS_OX) ¥
++		$(SRCD_BASE)msdos.cpp ¥
++		$(LIBS) $(LIBS_EXTRA) ¥
++		$(LDFLAGS) $(LDFLAGS_EXTRA)
++
+ $(TARGET_I286) : $(SRCD_BASE)msdos.cpp $(SRCD_BASE)msdos.h $(SRCS_I86) $(SRCS_I86DASM)
+ 	$(CXX) $(CXXFLAGS_I286) $(CFLAGS_EXTRA) ¥
+diff -r -U2 msdos.orig/source/msdos.cpp msdos/source/msdos.cpp
+--- msdos.orig/source/msdos.cpp	2022-09-20 14:30:00.000000000 +0000
++++ msdos/source/msdos.cpp	2023-08-20 14:38:14.821932096 +0000
+@@ -1,2 +1,3 @@
++/* -*- coding: cp932; -*- */
+ /*
+ 	MS-DOS Player for Win32 console
+@@ -479,5 +480,5 @@
+ 			CHAR code = lpCharacter[pos], replace;
+ 			
+-			if(code >= 0x01 && code <= 0x19 && (replace = box_drawings_char[code]) != 0) {
++			if(code >= 0x01 && code <= 0x19 && (replace = box_drawings_char[(UCHAR)code]) != 0) {
+ 				if(pos > start_pos) {
+ 					WriteConsoleOutputCharacterA(hConsoleOutput, lpCharacter + start_pos, pos - start_pos, shift_coord(dwWriteCoord, start_pos), &written_tmp);
+@@ -2518,5 +2519,5 @@
+ 		
+ 		if(hLibrary) {
+-			typedef DWORD (WINAPI *GetConsoleProcessListFunction)(__out LPDWORD lpdwProcessList, __in DWORD dwProcessCount);
++			typedef DWORD (WINAPI *GetConsoleProcessListFunction)(LPDWORD lpdwProcessList, DWORD dwProcessCount);
+ 			GetConsoleProcessListFunction lpfnGetConsoleProcessList;
+ 			lpfnGetConsoleProcessList = reinterpret_cast<GetConsoleProcessListFunction>(::GetProcAddress(hLibrary, "GetConsoleProcessList"));
+@@ -2916,5 +2917,5 @@
+ 		// check if command file is embedded to this execution file
+ 		// if this execution file name is msdos.exe, don't check
+-		FILE* fp = fopen(full, "rb");
++		FILE* fp = fopen(full, "rb"), *fo;
+ 		long offset = get_section_in_exec_file(fp, ".msdos");
+ 		if(offset != 0) {
+@@ -2962,4 +2963,15 @@
+ 			int file_len = buffer[13] | (buffer[14] << 8) | (buffer[15] << 16) | (buffer[16] << 24);
+ 			
++			if (file_len == 0) {
++				if (argv[0][0] == '-') {
++					dummy_argv_1[0] = '.';
++					dummy_argv_1[1] = '¥¥';
++					strcpy_s(dummy_argv_1 + 2, MAX_PATH - 2, argv[0]);
++				} else {
++					strcpy_s(dummy_argv_1, MAX_PATH, argv[0]);
++				}
++				goto load_self;
++			}
++
+ 			// restore command file name
+ 			memset(dummy_argv_1, 0, sizeof(dummy_argv_1));
+@@ -2991,5 +3003,5 @@
+ 			
+ 			// restore command file
+-			FILE* fo = fopen(dummy_argv_1, "wb");
++			fo = fopen(dummy_argv_1, "wb");
+ 			for(int i = 0; i < file_len; i++) {
+ 				fputc(fgetc(fp), fo);
+@@ -3001,4 +3013,5 @@
+ 			SetFileAttributesA(temp_file_path, FILE_ATTRIBUTE_HIDDEN);
+ 			
++load_self:
+ 			// adjust argc/argv
+ 			for(int i = 1; i < argc && (i + 1) < 256; i++) {
+@@ -4219,5 +4232,5 @@
+ 	{0xB4,	"Lock count has been exceeded", "ボリュームをこれ以上ロックできません."},
+ 	{0xB5,	"A valid eject request failed", "取り出しに失敗しました."},
+-	{-1  ,	"Unknown error", "不明なエラーです."},
++	{(UINT16)-1, "Unknown error", "不明なエラーです."},
+ };
+ 
+@@ -4237,5 +4250,5 @@
+ 	{0x0A,	"Invalid parameter", "無効なパラメータです."},
+ 	{0x0B,	"Invalid parameter combination", "無効なパラメータの組み合わせです."},
+-	{-1  ,	"Unknown error", "不明なエラーです."},
++	{(UINT16)-1, "Unknown error", "不明なエラーです."},
+ };
+ 
+@@ -4266,5 +4279,5 @@
+ 	{0x13,	"Out of input", "入力が終わりました."},
+ 	{0x14,	"Insufficient disk space", "ディスクの空き領域が足りません."},
+-	{-1  ,	"Critical error", "致命的なエラーです."},
++	{(UINT16)-1, "Critical error", "致命的なエラーです."},
+ };
+ 
+@@ -10073,8 +10086,8 @@
+ 	case 0x00:
+ 		if(CPU_DX < 3) {
+-			if(CPU_BX = 0x0001) {
++			if(CPU_BX == 0x0001) {
+ 				pio[CPU_DX].conv_mode = false;
+ 				CPU_AL = 0x00;
+-			} else if(CPU_BX = 0x0051) {
++			} else if(CPU_BX == 0x0051) {
+ 				pio[CPU_DX].conv_mode = true;
+ 				CPU_AL = 0x00;
+@@ -11603,6 +11616,6 @@
+ 	{0x174, LANG_ESTONIAN, SUBLANG_ESTONIAN_ESTONIA},			// Estonia
+ 	{0x17D, LANG_SERBIAN, SUBLANG_SERBIAN_LATIN},				// Serbia / Montenegro
+-	{0x180, LANG_SERBIAN, SUBLANG_SERBIAN_CROATIA},				// Croatia???
+-	{0x181, LANG_SERBIAN, SUBLANG_SERBIAN_CROATIA},				// Croatia
++	{0x180, LANG_SERBIAN, SUBLANG_CROATIAN_CROATIA},				// Croatia???
++	{0x181, LANG_SERBIAN, SUBLANG_CROATIAN_CROATIA},				// Croatia
+ 	{0x182, LANG_SLOVENIAN, SUBLANG_SLOVENIAN_SLOVENIA},			// Slovenia
+ 	{0x183, LANG_BOSNIAN, SUBLANG_BOSNIAN_BOSNIA_HERZEGOVINA_LATIN},	// Bosnia-Herzegovina (Latin)
+@@ -12166,5 +12179,5 @@
+ 	
+ 	process_t *process;
+-	int fd, drv;
++	int fd = 0, drv = 0;
+ 	
+ 	switch(CPU_AL) {
+@@ -19208,7 +19221,7 @@
+ 		}
+ 		if((tzi.Bias % 60) != 0) {
+-			sprintf(tz_value, "%s%d:%2d", tz_std, tzi.Bias / 60, abs(tzi.Bias % 60));
++			sprintf(tz_value, "%s%ld:%2d", tz_std, tzi.Bias / 60, (int)abs(tzi.Bias % 60));
+ 		} else {
+-			sprintf(tz_value, "%s%d", tz_std, tzi.Bias / 60);
++			sprintf(tz_value, "%s%ld", tz_std, tzi.Bias / 60);
+ 		}
+ 		if(daylight) {
