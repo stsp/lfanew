@@ -440,7 +440,8 @@ pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust)
 static void
 copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 {
-  uint32_t inh_size, aligned_inh_size, outh_size, aligned_outh_size,
+  uint32_t inh_size, aligned_inh_size, rcvd_inh_size,
+	   outh_size, aligned_outh_size,
 	   inh_slack, outh_slack, file_align, sect_align, adjust;
   pe_img_fil_hdr_t fhdr;
   pe_img_opt_hdr_t ophdr;
@@ -494,12 +495,19 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 
   outh_size = inh_size + out_off;
   inh_size += in_off;
-  aligned_inh_size = leh32 (ophdr.h.SizeOfHeaders);
-  if (inh_size > aligned_inh_size)
-    error ("PE SizeOfHeaders is bogus, %#lx > %#lx",
-	   (ul_t) inh_size, (ul_t) aligned_inh_size);
+  aligned_inh_size = round_up_to_two_power (inh_size, file_align);
+  if (aligned_inh_size < inh_size)
+    error ("input PE headers are too large, %#lx + %#lx > 4 GiB",
+	   (ul_t) inh_size, (ul_t) file_align);
+  rcvd_inh_size = leh32 (ophdr.h.SizeOfHeaders);
+  if (rcvd_inh_size < aligned_inh_size)
+    error ("PE SizeOfHeaders is bogus, %#lx < %#lx",
+	   (ul_t) rcvd_inh_size, (ul_t) aligned_inh_size);
+  else if (rcvd_inh_size > aligned_inh_size)  /* UPX weirdness */
+    warn ("PE SizeOfHeaders disagrees with actual headers' size, %#lx > %#lx",
+	  (ul_t) rcvd_inh_size, (ul_t) aligned_inh_size);
   if (aligned_inh_size - in_off > sz)
-    error ("PE SizeOfHeaders overshoots file end, %#lx > %#lx",
+    error ("input PE headers overshoot file end, %#lx > %#lx",
 	   (ul_t) (aligned_inh_size - in_off), (ul_t) sz);
 
   aligned_outh_size = round_up_to_two_power (outh_size, file_align);
