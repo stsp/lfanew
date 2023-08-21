@@ -1,3 +1,9 @@
+lfanew (20230821-build20230821-1~@distro@) @distro@; urgency=medium
+
+  * Correct debian/copyright metadata.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Mon, 21 Aug 2023 22:00:56 +0000
+
 lfanew (20230820-build20230820-3~@distro@) @distro@; urgency=medium
 
   * lfanew.c: allow PE SizeOfHeaders to exceed actual headers' size.  Warn
