@@ -33,6 +33,8 @@ OBJEXT = @OBJEXT@
 EXEEXT = @EXEEXT@
 AR = @AR@
 RANLIB = @RANLIB@
+OBJCOPY = @OBJCOPY@
+UPX = @UPX@
 
 WINCC = @WINCC@
 WINCXX = @WINCXX@
@@ -156,7 +158,16 @@ $(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.baseofcode.patch \
 	$(MAKE) -C $(@D)/msdos/source -f Makefile.mingw \
 		CC='$(WINCC)' CXX='$(WINCXX)' LDFLAGS_EXTRA='$(LDFLAGS_EXTRA)'\
 		i486
+ifeq "/bin/false" "$(UPX)"
 	cp $(@D)/msdos/binary/msdos_i486.exe $@.tmp
+else
+ifeq "/bin/false" "$(OBJCOPY)"
+	cp $(@D)/msdos/binary/msdos_i486.exe $@.tmp
+else
+	$(OBJCOPY) -R .slack $(@D)/msdos/binary/msdos_i486.exe $@.tmp
+	$(UPX) -9 $@.tmp
+endif
+endif
 	mv $@.tmp $@
 
 $(build3dir)/msdos_i486.exe \

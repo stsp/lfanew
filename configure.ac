@@ -46,9 +46,11 @@ AC_LANG_WERROR
 AC_PROG_CC
 AC_PATH_TOOL(AR, ar, /bin/false)
 AC_PATH_TOOL(RANLIB, ranlib, :)
+AC_PATH_TOOL(OBJCOPY, objcopy, /bin/false)
 if test yes = "$GCC"; then
   CFLAGS="-Wall $CFLAGS"
 fi
+AC_PATH_PROG(UPX, upx, /bin/false)
 case "$build" in
   *-cygwin* | *-mingw32* | *-mingw64* | *-msys* | *-windows* | *-winnt*)
     : ${WINRUN=}
