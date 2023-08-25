@@ -1,3 +1,9 @@
+lfanew (20230825-build20230825-3~@distro@) @distro@; urgency=medium
+
+  * lfanew.c: handle PE files output by upx & llvm-objcopy.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 25 Aug 2023 17:08:36 +0000
+
 lfanew (20230821-build20230821-1~@distro@) @distro@; urgency=medium
 
   * Correct debian/copyright metadata.

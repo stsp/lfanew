@@ -44,6 +44,7 @@ for:
     environment:
       OS: windows
     install:
+      - set PATH=%CD%\upx-4.1.0-win32;%PATH%
       - set PATH=%CD%\msdos\binary\i86_x64;%PATH%
       - set PATH=%CD%\nasm-2.16.01;%PATH%
       - set PATH=c:\cygwin64\bin;%PATH%

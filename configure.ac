@@ -44,12 +44,16 @@ AC_PROG_GREP
 AC_PROG_AWK
 AC_LANG_WERROR
 AC_PROG_CC
+AC_ARG_VAR(AR, [location of ar])
+AC_ARG_VAR(RANLIB, [location of ranlib])
+AC_ARG_VAR(OBJCOPY, [location of llvm-objcopy])
 AC_PATH_TOOL(AR, ar, /bin/false)
 AC_PATH_TOOL(RANLIB, ranlib, :)
-AC_PATH_TOOL(OBJCOPY, objcopy, /bin/false)
+AC_CHECK_TOOLS(OBJCOPY, llvm-objcopy, /bin/false)
 if test yes = "$GCC"; then
   CFLAGS="-Wall $CFLAGS"
 fi
+AC_ARG_VAR(UPX, [location of upx])
 AC_PATH_PROG(UPX, upx, /bin/false)
 case "$build" in
   *-cygwin* | *-mingw32* | *-mingw64* | *-msys* | *-windows* | *-winnt*)

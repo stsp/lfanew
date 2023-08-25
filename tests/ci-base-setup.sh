@@ -33,8 +33,9 @@ set -e -v
 AUTOCONF="$*"
 case "$OS" in
   windows)
-    # Unpack nasm & Takeda's MS-DOS Player.  Download these if necessary.
-    # The caller script is expected to add the correct directories to %PATH%.
+    # Unpack nasm, Takeda's MS-DOS Player, & upx.  Download these if
+    # necessary.  The caller script is expected to add the correct
+    # directories to %PATH%.
     pkg=nasm-2.16.01-win32.zip
     if test \! -f ./3rd-party/"$pkg"; then
       curl -f -L https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/win32/` \
@@ -46,6 +47,13 @@ case "$OS" in
       curl -f -L http://takeda-toshiya.my.coocan.jp/msdos/"$pkg" \
 	   -o ./3rd-party/"$pkg"
     fi
+    7z x ./3rd-party/"$pkg"
+    ver=4.1.0
+    pkg=upx-"$ver"-win32.zip
+    if test \! -f ./3rd-party/"$pkg"; then
+      curl -f -L https://github.com/upx/upx/releases/download/"$ver"/"$pkg" \
+	   -o ./3rd-party/"$pkg"
+    fi
     7z x ./3rd-party/"$pkg";;
   *)
     apt-get install -y software-properties-common
@@ -54,7 +62,8 @@ case "$OS" in
     add-apt-repository -y ppa:tkchia/de-rebus \
      || apt-key add tests/ppa-pub-key.gpg.bin
     apt-get update -y
-    set -- dos2unix nasm emu2.dmsc autoconf make wine gcc-mingw-w64-i686
+    set -- dos2unix nasm emu2.dmsc autoconf make wine gcc-mingw-w64-i686 \
+	   g++-mingw-w64-i686 p7zip-full upx-ucl llvm
     case "$AUTOCONF:$CC" in
       *chibicc*)
 	set -- chibicc "$@";;

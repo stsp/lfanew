@@ -38,13 +38,14 @@ UPX = @UPX@
 
 WINCC = @WINCC@
 WINCXX = @WINCXX@
+HOSTRUN = @HOSTRUN@
 
 lfanew_cv_prog_wincc_ldscripts_i386pe_x \
 = @lfanew_cv_prog_wincc_ldscripts_i386pe_x@
 lfanew_cv_prog_wincc_ldscripts_i386pep_x \
 = @lfanew_cv_prog_wincc_ldscripts_i386pep_x@
 
-PROGRAMS = lfanew$(EXEEXT)
+PROGRAMS = $(LFANEW)
 LIBRARIES = a/libfanew.a
 HEADERS = h/lfanew/dirent.h \
 	  h/lfanew/io.h \
@@ -63,8 +64,11 @@ endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
   SCRIPTS += ldscripts/i386pepbc.x
 endif
+DATA = $(build3dir)/msdos_i486.pe
 
-default: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS)
+LFANEW = lfanew$(EXEEXT)
+
+default: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS) $(DATA)
 .PHONY: default
 
 all: default
@@ -148,8 +152,11 @@ ldscripts/i386pepbc.x: patch-lds.awk \
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pep_x) >$@.tmp
 	mv $@.tmp $@
 
+$(build3dir)/msdos_i486.pe: $(build3dir)/msdos_i486.exe $(LFANEW)
+	$(HOSTRUN) '$(abspath $(LFANEW))' -U -o $@ $<
+
 $(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.baseofcode.patch \
-			     $(SCRIPTS)
+			     $(build3dir)/msdos-opts.bin $(SCRIPTS)
 	mkdir -p $(@D)
 	$(RM) -r $(@D)/msdos
 	7z x -o$(@D) $<
@@ -161,18 +168,20 @@ $(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.baseofcode.patch \
 ifeq "/bin/false" "$(UPX)"
 	cp $(@D)/msdos/binary/msdos_i486.exe $@.tmp
 else
-ifeq "/bin/false" "$(OBJCOPY)"
-	cp $(@D)/msdos/binary/msdos_i486.exe $@.tmp
-else
 	$(OBJCOPY) -R .slack $(@D)/msdos/binary/msdos_i486.exe $@.tmp
 	$(UPX) -9 $@.tmp
 endif
-endif
+	$(OBJCOPY) --add-section .msdos=$(filter %.bin,$^) $@.tmp
 	mv $@.tmp $@
 
 $(build3dir)/msdos_i486.exe \
- : LDFLAGS_EXTRA = -T'$(abspath $(SCRIPTS))' \
+ : LDFLAGS_EXTRA = -T$(abspath $(SCRIPTS)) \
 		   -Wl,--defsym=__base_of_code__=0x80000
+
+$(build3dir)/msdos-opts.bin:
+	mkdir -p $(@D)
+	dd if=/dev/zero of=$@.tmp bs=17 count=1
+	mv $@.tmp $@
 
 # Copy the generated tests/testsuite from the source directory to the build
 # directory, or create a symlink from the latter to the former --- but only

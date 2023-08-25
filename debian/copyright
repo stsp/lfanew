@@ -36,6 +36,10 @@ Files: 3rd-party/msdos.7z
 Copyright: 2009-2022 Takeda Toshiya
 License: GPL-2.0
 
+Files: 3rd-party/upx-*-win32.zip
+Copyright: 1996-2000 Markus Oberhumer and Laszlo Molnar
+License: GPL-2.0+ with UPX exception
+
 License: MPL-2.0
  This Source Code Form is subject to the terms of the Mozilla Public
  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -101,6 +105,41 @@ License: GPL-2.0
  You should have received a copy of the GNU General Public License along
  with this program; if not, write to the Free Software Foundation, Inc., 51
  Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+License: GPL-2.0+ with UPX exception
+ UPX and the UCL library are free software; you can redistribute them and/or
+ modify them under the terms of the GNU General Public License as published
+ by the Free Software Foundation; either version 2 of the License, or (at
+ your option) any later version.
+ .
+ UPX and UCL are distributed in the hope that they will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ for more details.
+ .
+ You should have received a copy of the GNU General Public License along
+ with this program; see the file COPYING.
+ .
+ The stub which is imbedded in each UPX compressed program is part of UPX
+ and UCL, and contains code that is under our copyright.  The terms of the
+ GNU General Public License still apply as compressing a program is a
+ special form of linking with our stub.
+ .
+ Hereby Markus F.X.J. Oberhumer and Laszlo Molnar grant you special
+ permission to freely use and distribute all UPX compressed programs
+ (including commercial ones), subject to the following restrictions:
+ .
+ 1. You must compress your program with a completely unmodified UPX
+    version; either with our precompiled version, or (at your option) with a
+    self compiled version of the unmodified UPX sources as distributed by
+    us.
+ 2. This also implies that the UPX stub must be completely unmodfied, i.e.
+    the stub imbedded in your compressed program must be byte-identical to
+    the stub that is produced by the official unmodified UPX version.
+ 3. The decompressor and any other code from the stub must exclusively get
+    used by the unmodified UPX stub for decompressing your program at
+    program startup.  No portion of the stub may get read, copied, called or
+    otherwise get used or accessed by your program.
 
 License: GPL-3.0+ with Autoconf Configure Script exception
  This file is free software; you can redistribute it and/or modify it

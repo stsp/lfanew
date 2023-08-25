@@ -425,14 +425,20 @@ round_up_to_two_power (ul_t value, ul_t multiple)
 }
 
 static void
-pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust)
+pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust,
+	       bool can_zero)
 {
   uint32_t off = leh32 (*p_off);
   if (off != 0)
     {
       if (off < aligned_inh_size)
-	error ("cannot adjust PE file pointer %#lx < %#lx",
-	       (ul_t) off, (ul_t) aligned_inh_size);
+	{
+	  if (can_zero)
+	    *p_off = hle32 (0);
+	  else
+	    error ("cannot adjust PE file pointer %#lx < %#lx",
+		   (ul_t) off, (ul_t) aligned_inh_size);
+	}
       *p_off = hle32 (off + adjust);
     }
 }
@@ -446,7 +452,7 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   pe_img_fil_hdr_t fhdr;
   pe_img_opt_hdr_t ophdr;
   uint16_t ophdr_size, ophdr_magic, num_sects;
-  uint32_t min_used_rva = UINT32_MAX, rva;
+  uint32_t min_used_rva = UINT32_MAX, rva, props;
   unsigned i;
   pe_sect_hdr_t sect;
   bool pe32plus = false;
@@ -534,7 +540,8 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	  switch (i)
 	    {
 	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
-	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust,
+			     ! leh32 (ent->Size));
 	      break;
 
 	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
@@ -560,7 +567,8 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	  switch (i)
 	    {
 	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
-	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust);
+	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust,
+			     ! leh32 (ent->Size));
 	      break;
 
 	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
@@ -596,13 +604,17 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	error_with_errno ("cannot read PE section header #%#x", (ui_t) i);
 
       rva = leh32 (sect.VirtualAddress);
+      props = leh32 (sect.Characteristics);
       if (rva == 0)
-	warn ("section #%#x has suspicious RVA of 0", (ui_t) i);
+	{
+	  if ((props & (IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ
+			| IMAGE_SCN_MEM_WRITE)) != 0)
+	    warn ("section #%#x has suspicious RVA of 0", (ui_t) i);
+	}
       else if (i == 1
 	       && leh32 (sect.SizeOfRawData) == 0
-	       && (leh32 (sect.Characteristics)
-		   & (IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA
-		      | IMAGE_SCN_CNT_UNINITIALIZED_DATA))
+	       && (props & (IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA
+			    | IMAGE_SCN_CNT_UNINITIALIZED_DATA))
 		  == IMAGE_SCN_CNT_UNINITIALIZED_DATA)
 	{
 	  /*
@@ -627,9 +639,12 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
       else if (rva < min_used_rva)
 	min_used_rva = rva;
 
-      pe_adjust_off (&sect.PointerToRawData, aligned_inh_size, adjust);
-      pe_adjust_off (&sect.PointerToRelocations, aligned_inh_size, adjust);
-      pe_adjust_off (&sect.PointerToLinenumbers, aligned_inh_size, adjust);
+      pe_adjust_off (&sect.PointerToRawData, aligned_inh_size, adjust,
+		     ! leh32 (sect.SizeOfRawData));
+      pe_adjust_off (&sect.PointerToRelocations, aligned_inh_size, adjust,
+		     ! leh16 (sect.NumberOfRelocations));
+      pe_adjust_off (&sect.PointerToLinenumbers, aligned_inh_size, adjust,
+		     ! leh16 (sect.NumberOfLinenumbers));
 
       if (! xwrite1 (out, &sect, sizeof (sect)))
 	error_with_errno ("cannot write PE section header #%#x", (ui_t) i);
