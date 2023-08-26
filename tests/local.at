@@ -53,13 +53,15 @@ dnl $2 = starting RVA for .text section (this should be a power of 2 so that
 dnl	 it can also be used as an alignment)
 m4_define([AT_LFANEW_WINCC_RERVA],[dnl
 [if test none != "$lfanew_cv_prog_wincc_ldscripts_i386pep_x"; then]
-  [cat "$abs_top_builddir"/ldscripts/i386pepbc.x >&2]
-  AT_LFANEW_WINCC([$1],[[-T "$abs_top_builddir"/ldscripts/i386pepbc.x] dnl
-			[-Wl,--defsym=__base_of_code__=]$2])
+  [cat "$abs_top_builddir"/ldscripts/lfanew/i386pepbc.x >&2]
+  AT_LFANEW_WINCC([$1],dnl
+		  [[-T "$abs_top_builddir"/ldscripts/lfanew/i386pepbc.x] dnl
+		   [-Wl,--defsym=__base_of_code__=]$2])
 [elif test none != "$lfanew_cv_prog_wincc_ldscripts_i386pe_x"; then]
-  [cat "$abs_top_builddir"/ldscripts/i386pebc.x >&2]
-  AT_LFANEW_WINCC([$1],[[-T "$abs_top_builddir"/ldscripts/i386pebc.x] dnl
-			[-Wl,--defsym=__base_of_code__=]$2])
+  [cat "$abs_top_builddir"/ldscripts/lfanew/i386pebc.x >&2]
+  AT_LFANEW_WINCC([$1],dnl
+		  [[-T "$abs_top_builddir"/ldscripts/lfanew/i386pebc.x] dnl
+		   [-Wl,--defsym=__base_of_code__=]$2])
 [elif test yes = "$lfanew_cv_prog_wincc_wl_align"; then]
   AT_LFANEW_WINCC([$1],[[-Wl,-align:]$2])
 [else]

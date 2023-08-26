@@ -63,7 +63,7 @@ case "$OS" in
      || apt-key add tests/ppa-pub-key.gpg.bin
     apt-get update -y
     set -- dos2unix nasm emu2.dmsc autoconf make wine gcc-mingw-w64-i686 \
-	   g++-mingw-w64-i686 p7zip-full upx-ucl llvm
+	   g++-mingw-w64-i686 p7zip-full upx-ucl llvm-14
     case "$AUTOCONF:$CC" in
       *chibicc*)
 	set -- chibicc "$@";;

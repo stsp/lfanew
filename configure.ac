@@ -44,15 +44,31 @@ AC_PROG_GREP
 AC_PROG_AWK
 AC_LANG_WERROR
 AC_PROG_CC
-AC_ARG_VAR(AR, [location of ar])
-AC_ARG_VAR(RANLIB, [location of ranlib])
-AC_ARG_VAR(OBJCOPY, [location of llvm-objcopy])
-AC_PATH_TOOL(AR, ar, /bin/false)
-AC_PATH_TOOL(RANLIB, ranlib, :)
-AC_CHECK_TOOLS(OBJCOPY, llvm-objcopy, /bin/false)
 if test yes = "$GCC"; then
   CFLAGS="-Wall $CFLAGS"
 fi
+AC_ARG_VAR(AR, [location of ar])
+AC_ARG_VAR(RANLIB, [location of ranlib])
+AC_ARG_VAR(LLVMCONFIG, [location of llvm-config])
+AC_ARG_VAR(OBJCOPY, [location of llvm-objcopy])
+AC_PATH_TOOL(AR, ar, /bin/false)
+AC_PATH_TOOL(RANLIB, ranlib, :)
+dnl GNU Binutils's objcopy cannot deal with Windows PE files produced by upx.
+dnl LLVM's objcopy can.  So use that.  A complication is that only newer
+dnl versions of llvm-objcopy support the --set-section-flags option for PE.
+AC_CHECK_TOOL(LLVMCONFIG, [llvm-config], /bin/false)
+case :"`$LLVMCONFIG --version 2>/dev/null`": in
+  :[0-9].*: | :10.*: )
+    AC_CHECK_TOOLS(OBJCOPY, [llvm-objcopy-14 llvm-objcopy-13 ]dnl
+			    [llvm-objcopy-12 llvm-objcopy-11 ]dnl
+			    [llvm-objcopy], /bin/false)
+    ;;
+  *)
+    AC_CHECK_TOOLS(OBJCOPY, [llvm-objcopy llvm-objcopy-14 ]dnl
+			    [llvm-objcopy-13 llvm-objcopy-12 ]dnl
+			    [llvm-objcopy-11], /bin/false)
+    ;;
+esac
 AC_ARG_VAR(UPX, [location of upx])
 AC_PATH_PROG(UPX, upx, /bin/false)
 case "$build" in

@@ -1,4 +1,3 @@
--*- coding: cp932; -*-
 diff -r -U2 msdos.orig/source/Makefile.mingw msdos/source/Makefile.mingw
 --- msdos.orig/source/Makefile.mingw	2017-02-17 22:20:00.000000000 +0000
 +++ msdos/source/Makefile.mingw	2023-08-20 10:18:20.406669564 +0000
@@ -62,7 +61,7 @@ diff -r -U2 msdos.orig/source/Makefile.mingw msdos/source/Makefile.mingw
  	$(CXX) $(CXXFLAGS_I286) $(CFLAGS_EXTRA) ¥
 diff -r -U2 msdos.orig/source/msdos.cpp msdos/source/msdos.cpp
 --- msdos.orig/source/msdos.cpp	2022-09-20 14:30:00.000000000 +0000
-+++ msdos/source/msdos.cpp	2023-08-20 14:38:14.821932096 +0000
++++ msdos/source/msdos.cpp	2023-08-26 20:11:26.228893510 +0000
 @@ -1,2 +1,3 @@
 +/* -*- coding: cp932; -*- */
  /*
@@ -74,21 +73,74 @@ diff -r -U2 msdos.orig/source/msdos.cpp msdos/source/msdos.cpp
 +			if(code >= 0x01 && code <= 0x19 && (replace = box_drawings_char[(UCHAR)code]) != 0) {
  				if(pos > start_pos) {
  					WriteConsoleOutputCharacterA(hConsoleOutput, lpCharacter + start_pos, pos - start_pos, shift_coord(dwWriteCoord, start_pos), &written_tmp);
-@@ -2518,5 +2519,5 @@
+@@ -2448,27 +2449,36 @@
+ long get_section_in_exec_file(FILE *fp, const char *name)
+ {
+-	UINT8 header[0x400];
+-	
++	DWORD dwTopOfSignature, dwTopOfCoffHeader,
++	      dwTopOfOptionalHeader, dwTopOfFirstSectionHeader;
+ 	long position = ftell(fp);
+-	fseek(fp, 0, SEEK_SET);
+-	fread(header, sizeof(header), 1, fp);
+-	fseek(fp, position, SEEK_SET);
+ 	
+ 	try {
+-		_IMAGE_DOS_HEADER *dosHeader = (_IMAGE_DOS_HEADER *)(header + 0);
+-		DWORD dwTopOfSignature = dosHeader->e_lfanew;
+-		DWORD dwTopOfCoffHeader = dwTopOfSignature + 4;
+-		_IMAGE_FILE_HEADER *coffHeader = (_IMAGE_FILE_HEADER *)(header + dwTopOfCoffHeader);
+-		DWORD dwTopOfOptionalHeader = dwTopOfCoffHeader + sizeof(_IMAGE_FILE_HEADER);
+-		DWORD dwTopOfFirstSectionHeader = dwTopOfOptionalHeader + coffHeader->SizeOfOptionalHeader;
+-		
+-		for(int i = 0; i < coffHeader->NumberOfSections; i++) {
+-			_IMAGE_SECTION_HEADER *sectionHeader = (_IMAGE_SECTION_HEADER *)(header + dwTopOfFirstSectionHeader + IMAGE_SIZEOF_SECTION_HEADER * i);
+-			if(memcmp(sectionHeader->Name, name, strlen(name)) == 0) {
+-				return(sectionHeader->PointerToRawData);
++		{
++			_IMAGE_DOS_HEADER dosHeader;
++			fseek(fp, 0, SEEK_SET);
++			fread(&dosHeader, sizeof(dosHeader), 1, fp);
++			dwTopOfSignature = dosHeader.e_lfanew;
++			dwTopOfCoffHeader = dwTopOfSignature + 4;
++		}
++		{
++			_IMAGE_FILE_HEADER coffHeader;
++			fseek(fp, dwTopOfCoffHeader, SEEK_SET);
++			fread(&coffHeader, sizeof(coffHeader), 1, fp);
++			dwTopOfOptionalHeader = dwTopOfCoffHeader + sizeof(_IMAGE_FILE_HEADER);
++			dwTopOfFirstSectionHeader = dwTopOfOptionalHeader + coffHeader.SizeOfOptionalHeader;
++
++			fseek(fp, dwTopOfFirstSectionHeader, SEEK_SET);
++			for(int i = 0; i < coffHeader.NumberOfSections; i++) {
++				_IMAGE_SECTION_HEADER sectionHeader;
++				fread(&sectionHeader, sizeof(sectionHeader), 1, fp);
++				if(memcmp(sectionHeader.Name, name, strlen(name)) == 0) {
++					fseek(fp, position, SEEK_SET);
++					return(sectionHeader.PointerToRawData);
++				}
+ 			}
+ 		}
+ 	} catch(...) {
+ 	}
++	fseek(fp, position, SEEK_SET);
+ 	return(0);
+ }
+@@ -2518,5 +2528,5 @@
  		
  		if(hLibrary) {
 -			typedef DWORD (WINAPI *GetConsoleProcessListFunction)(__out LPDWORD lpdwProcessList, __in DWORD dwProcessCount);
 +			typedef DWORD (WINAPI *GetConsoleProcessListFunction)(LPDWORD lpdwProcessList, DWORD dwProcessCount);
  			GetConsoleProcessListFunction lpfnGetConsoleProcessList;
  			lpfnGetConsoleProcessList = reinterpret_cast<GetConsoleProcessListFunction>(::GetProcAddress(hLibrary, "GetConsoleProcessList"));
-@@ -2916,5 +2917,5 @@
+@@ -2916,5 +2926,5 @@
  		// check if command file is embedded to this execution file
  		// if this execution file name is msdos.exe, don't check
 -		FILE* fp = fopen(full, "rb");
 +		FILE* fp = fopen(full, "rb"), *fo;
  		long offset = get_section_in_exec_file(fp, ".msdos");
  		if(offset != 0) {
-@@ -2962,4 +2963,15 @@
+@@ -2962,4 +2972,15 @@
  			int file_len = buffer[13] | (buffer[14] << 8) | (buffer[15] << 16) | (buffer[16] << 24);
  			
 +			if (file_len == 0) {
@@ -104,41 +156,41 @@ diff -r -U2 msdos.orig/source/msdos.cpp msdos/source/msdos.cpp
 +
  			// restore command file name
  			memset(dummy_argv_1, 0, sizeof(dummy_argv_1));
-@@ -2991,5 +3003,5 @@
+@@ -2991,5 +3012,5 @@
  			
  			// restore command file
 -			FILE* fo = fopen(dummy_argv_1, "wb");
 +			fo = fopen(dummy_argv_1, "wb");
  			for(int i = 0; i < file_len; i++) {
  				fputc(fgetc(fp), fo);
-@@ -3001,4 +3013,5 @@
+@@ -3001,4 +3022,5 @@
  			SetFileAttributesA(temp_file_path, FILE_ATTRIBUTE_HIDDEN);
  			
 +load_self:
  			// adjust argc/argv
  			for(int i = 1; i < argc && (i + 1) < 256; i++) {
-@@ -4219,5 +4232,5 @@
+@@ -4219,5 +4241,5 @@
  	{0xB4,	"Lock count has been exceeded", "ボリュームをこれ以上ロックできません."},
  	{0xB5,	"A valid eject request failed", "取り出しに失敗しました."},
 -	{-1  ,	"Unknown error", "不明なエラーです."},
 +	{(UINT16)-1, "Unknown error", "不明なエラーです."},
  };
  
-@@ -4237,5 +4250,5 @@
+@@ -4237,5 +4259,5 @@
  	{0x0A,	"Invalid parameter", "無効なパラメータです."},
  	{0x0B,	"Invalid parameter combination", "無効なパラメータの組み合わせです."},
 -	{-1  ,	"Unknown error", "不明なエラーです."},
 +	{(UINT16)-1, "Unknown error", "不明なエラーです."},
  };
  
-@@ -4266,5 +4279,5 @@
+@@ -4266,5 +4288,5 @@
  	{0x13,	"Out of input", "入力が終わりました."},
  	{0x14,	"Insufficient disk space", "ディスクの空き領域が足りません."},
 -	{-1  ,	"Critical error", "致命的なエラーです."},
 +	{(UINT16)-1, "Critical error", "致命的なエラーです."},
  };
  
-@@ -10073,8 +10086,8 @@
+@@ -10073,8 +10095,8 @@
  	case 0x00:
  		if(CPU_DX < 3) {
 -			if(CPU_BX = 0x0001) {
@@ -149,7 +201,7 @@ diff -r -U2 msdos.orig/source/msdos.cpp msdos/source/msdos.cpp
 +			} else if(CPU_BX == 0x0051) {
  				pio[CPU_DX].conv_mode = true;
  				CPU_AL = 0x00;
-@@ -11603,6 +11616,6 @@
+@@ -11603,6 +11625,6 @@
  	{0x174, LANG_ESTONIAN, SUBLANG_ESTONIAN_ESTONIA},			// Estonia
  	{0x17D, LANG_SERBIAN, SUBLANG_SERBIAN_LATIN},				// Serbia / Montenegro
 -	{0x180, LANG_SERBIAN, SUBLANG_SERBIAN_CROATIA},				// Croatia???
@@ -158,14 +210,14 @@ diff -r -U2 msdos.orig/source/msdos.cpp msdos/source/msdos.cpp
 +	{0x181, LANG_SERBIAN, SUBLANG_CROATIAN_CROATIA},				// Croatia
  	{0x182, LANG_SLOVENIAN, SUBLANG_SLOVENIAN_SLOVENIA},			// Slovenia
  	{0x183, LANG_BOSNIAN, SUBLANG_BOSNIAN_BOSNIA_HERZEGOVINA_LATIN},	// Bosnia-Herzegovina (Latin)
-@@ -12166,5 +12179,5 @@
+@@ -12166,5 +12188,5 @@
  	
  	process_t *process;
 -	int fd, drv;
 +	int fd = 0, drv = 0;
  	
  	switch(CPU_AL) {
-@@ -19208,7 +19221,7 @@
+@@ -19208,7 +19230,7 @@
  		}
  		if((tzi.Bias % 60) != 0) {
 -			sprintf(tz_value, "%s%d:%2d", tz_std, tzi.Bias / 60, abs(tzi.Bias % 60));

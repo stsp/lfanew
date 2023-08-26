@@ -3,7 +3,8 @@ Section: devel
 Priority: optional
 Maintainer: TK Chia <tkchia@users.noreply.github.com>
 Build-Depends: debhelper (>= 9), quilt, gcc (>= 4.5), libc6-dev (>= 2),
- dos2unix, gcc-mingw-w64-i686, g++-mingw-w64-i686, p7zip-full, upx-ucl, llvm
+ dos2unix, gcc-mingw-w64-i686, g++-mingw-w64-i686, p7zip-full, upx-ucl,
+ llvm-14 | llvm-13 | llvm-12 | llvm-11 | llvm (>= 11)
 Standards-Version: 3.9.6
 Homepage: https://gitlab.com/tkchia/lfanew
 

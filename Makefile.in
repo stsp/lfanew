@@ -59,10 +59,10 @@ ifeq "no" "@ac_cv_func_scandir@"
   LIBOBJS += a/scandir.$(OBJEXT)
 endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pe_x)"
-  SCRIPTS += ldscripts/i386pebc.x
+  SCRIPTS += ldscripts/lfanew/i386pebc.x
 endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
-  SCRIPTS += ldscripts/i386pepbc.x
+  SCRIPTS += ldscripts/lfanew/i386pepbc.x
 endif
 DATA = $(build3dir)/msdos_i486.pe
 
@@ -141,13 +141,14 @@ a/libfanew.a: $(LIBOBJS)
 %.$(OBJEXT): %.c
 %$(EXEEXT): %.$(OBJEXT)
 
-ldscripts/i386pebc.x: patch-lds.awk $(lfanew_cv_prog_wincc_ldscripts_i386pe_x)
+ldscripts/lfanew/i386pebc.x: patch-lds.awk \
+			     $(lfanew_cv_prog_wincc_ldscripts_i386pe_x)
 	mkdir -p $(@D)
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pe_x) >$@.tmp
 	mv $@.tmp $@
 
-ldscripts/i386pepbc.x: patch-lds.awk \
-		       $(lfanew_cv_prog_wincc_ldscripts_i386pep_x)
+ldscripts/lfanew/i386pepbc.x: patch-lds.awk \
+			      $(lfanew_cv_prog_wincc_ldscripts_i386pep_x)
 	mkdir -p $(@D)
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pep_x) >$@.tmp
 	mv $@.tmp $@
@@ -171,7 +172,8 @@ else
 	$(OBJCOPY) -R .slack $(@D)/msdos/binary/msdos_i486.exe $@.tmp
 	$(UPX) -9 $@.tmp
 endif
-	$(OBJCOPY) --add-section .msdos=$(filter %.bin,$^) $@.tmp
+	$(OBJCOPY) --add-section .msdos=$(filter %.bin,$^) \
+		   --set-section-flags .msdos=debug $@.tmp
 	mv $@.tmp $@
 
 $(build3dir)/msdos_i486.exe \
