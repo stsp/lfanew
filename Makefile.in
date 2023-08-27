@@ -156,7 +156,7 @@ ldscripts/lfanew/i386pepbc.x: patch-lds.awk \
 $(build3dir)/msdos_i486.pe: $(build3dir)/msdos_i486.exe $(LFANEW)
 	$(HOSTRUN) '$(abspath $(LFANEW))' -U -o $@ $<
 
-$(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.baseofcode.patch \
+$(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.load-self.patch \
 			     $(build3dir)/msdos-opts.bin $(SCRIPTS)
 	mkdir -p $(@D)
 	$(RM) -r $(@D)/msdos
