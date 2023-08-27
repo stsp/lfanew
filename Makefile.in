@@ -13,10 +13,12 @@ mkinstalldirs = $(SHELL) $(srcdir)/mkinstalldirs
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
-
 bindir = @bindir@
 includedir = @includedir@
 libdir = @libdir@
+datarootdir = @datarootdir@
+datadir = @datadir@
+
 build3dir = 3rd-party.build
 
 INSTALL = @INSTALL@
@@ -64,7 +66,7 @@ endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
   SCRIPTS += ldscripts/lfanew/i386pepbc.x
 endif
-DATA = $(build3dir)/msdos_i486.pe
+DATA = d/msdos_i486.pe
 
 LFANEW = lfanew$(EXEEXT)
 
@@ -74,10 +76,14 @@ default: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS) $(DATA)
 all: default
 .PHONY: all
 
-install: $(PROGRAMS) $(HEADERS) $(LIBRARIES)
+install: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(DATA)
 	$(mkinstalldirs) $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) \
+			 $(DESTDIR)$(datadir)/lfanew \
 	  $(sort $(dir $(HEADERS:h/%=$(DESTDIR)$(includedir)/%)))
-	$(INSTALL_PROGRAM) $(filter-out %.h %.a,$^) $(DESTDIR)$(bindir)
+	set -e; \
+	for p in $(PROGRAMS); do \
+	  $(INSTALL_PROGRAM) "$$p" $(DESTDIR)$(bindir)/"$$p"; \
+	done
 	set -e; \
 	for h in $(HEADERS:h/%=%); do \
 	  if test -f h/"$$h"; then \
@@ -93,10 +99,18 @@ install: $(PROGRAMS) $(HEADERS) $(LIBRARIES)
 	    $(INSTALL_DATA) $(srcdir)/a/"$$a" $(DESTDIR)$(libdir)/"$$a"; \
 	  fi; \
 	done
+	for d in $(DATA:d/%=%); do \
+	  if test -f d/"$$d"; then \
+	    $(INSTALL_DATA) d/"$$d" $(DESTDIR)$(datadir)/lfanew/"$$d"; \
+	  else \
+	    $(INSTALL_DATA) $(srcdir)/d/"$$d" \
+			    $(DESTDIR)$(datadir)/lfanew/"$$d"; \
+	  fi; \
+	done
 .PHONY: install
 
 clean mostlyclean:
-	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) $(OBJS) $(LIBRARIES) \
+	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) $(OBJS) $(LIBRARIES) $(DATA) \
 	      $(build3dir) *~
 .PHONY: clean mostlyclean
 
@@ -153,7 +167,8 @@ ldscripts/lfanew/i386pepbc.x: patch-lds.awk \
 	$(AWK) -f $< $(lfanew_cv_prog_wincc_ldscripts_i386pep_x) >$@.tmp
 	mv $@.tmp $@
 
-$(build3dir)/msdos_i486.pe: $(build3dir)/msdos_i486.exe $(LFANEW)
+d/msdos_i486.pe: $(build3dir)/msdos_i486.exe $(LFANEW)
+	mkdir -p $(@D)
 	$(HOSTRUN) '$(abspath $(LFANEW))' -U -o $@ $<
 
 $(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.load-self.patch \

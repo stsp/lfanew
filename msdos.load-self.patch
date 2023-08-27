@@ -1,3 +1,4 @@
+-*- coding: cp932; -*-
 diff -r -U2 msdos.orig/source/Makefile.mingw msdos/source/Makefile.mingw
 --- msdos.orig/source/Makefile.mingw	2017-02-17 22:20:00.000000000 +0000
 +++ msdos/source/Makefile.mingw	2023-08-20 10:18:20.406669564 +0000
