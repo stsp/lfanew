@@ -183,7 +183,8 @@ AC_SUBST([lfanew_cv_prog_wincc_ldscripts_i386pep_x])
 AC_SUBST([lfanew_cv_prog_wincc_wl_align])
 
 AC_CONFIG_TESTDIR([tests])
-AC_CONFIG_FILES([Makefile tests/atlocal])
+AC_CONFIG_FILES([Makefile msdospeify tests/atlocal],dnl
+		[test -f msdospeify && chmod +x msdospeify])
 AC_DEFINE_UNQUOTED([_LFANEW_VERSION],[${PACKAGE_VERSION}L])
 AC_CONFIG_HEADERS([h/lfanew/_config.h h/lfanew/_version.h])
 AC_OUTPUT

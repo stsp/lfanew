@@ -1,0 +1,77 @@
+#!/bin/sh
+# Copyright (c) 2023 TK Chia
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+set -e
+
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+datarootdir="@datarootdir@"
+datadir="@datadir@"
+builddir="@builddir@"
+
+me=`basename "$0"`
+
+usage() {
+  echo "usage: $me [-v] -o OUT-FAT-FILE IN-DOS-FILE" >&2
+  exit 1
+}
+
+verbose=
+opt=
+in=
+out=
+for arg in ${1+"$@"}; do
+  case "$opt" in
+    -o)
+      if test -z "$out"; then
+	out="$arg"
+      else
+	usage
+      fi
+      opt= ;;
+    *)
+      case "$arg" in
+	-v)
+	  verbose=-x ;;
+        -o)
+	  opt=-o ;;
+	-* | '')
+	  usage ;;
+	*)
+	if test -z "$in"; then
+	  in="$arg"
+	else
+	  usage
+	fi ;;
+      esac ;;
+  esac
+done
+if test -z "$in" || test -z "$out"; then
+  usage
+fi
+
+set $verbose --
+
+if test -f "$bindir/lfanew"; then
+  lfanew="$bindir"/lfanew
+  pe="$datadir"/msdos_i486.pe
+else
+  lfanew="$builddir"/lfanew
+  pe="$builddir"/d/msdos_i486.pe
+fi
+tmp1=
+tmp2=
+trap 'rm -rf "$tmp1" "$tmp2"' 0 1 2 13 15
+tmp1=`mktemp "$out.XXXXXX"`
+test -f "$tmp1" || exit 2
+tmp2=`mktemp "$out.XXXXXX"`
+test -f "$tmp2" || exit 2
+"$lfanew" -o "$tmp1" "$in" \
+ || cp "$in" "$tmp1"
+"$lfanew" -S -o "$tmp2" "$pe" "$tmp1"
+mv "$tmp2" "$out"

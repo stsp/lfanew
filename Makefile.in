@@ -19,6 +19,7 @@ libdir = @libdir@
 datarootdir = @datarootdir@
 datadir = @datadir@
 
+abs_builddir = @abs_builddir@
 build3dir = 3rd-party.build
 
 INSTALL = @INSTALL@
@@ -56,32 +57,33 @@ HEADERS = h/lfanew/dirent.h \
 	  h/nexgen/mzendian.h \
 	  h/nexgen/mzhdr.h
 LIBOBJS = a/direntdup.$(OBJEXT)
-SCRIPTS =
+SCRIPTS = msdospeify
+DATA = d/msdos_i486.pe
+WINLIBRARIES =
 ifeq "no" "@ac_cv_func_scandir@"
   LIBOBJS += a/scandir.$(OBJEXT)
 endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pe_x)"
-  SCRIPTS += ldscripts/lfanew/i386pebc.x
+  WINLIBRARIES += ldscripts/lfanew/i386pebc.x
 endif
 ifneq "none" "$(lfanew_cv_prog_wincc_ldscripts_i386pep_x)"
-  SCRIPTS += ldscripts/lfanew/i386pepbc.x
+  WINLIBRARIES += ldscripts/lfanew/i386pepbc.x
 endif
-DATA = d/msdos_i486.pe
 
 LFANEW = lfanew$(EXEEXT)
 
-default: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS) $(DATA)
+default: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS) $(DATA) $(WINLIBRARIES)
 .PHONY: default
 
 all: default
 .PHONY: all
 
-install: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(DATA)
+install: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(SCRIPTS) $(DATA)
 	$(mkinstalldirs) $(DESTDIR)$(bindir) $(DESTDIR)$(libdir) \
 			 $(DESTDIR)$(datadir)/lfanew \
 	  $(sort $(dir $(HEADERS:h/%=$(DESTDIR)$(includedir)/%)))
 	set -e; \
-	for p in $(PROGRAMS); do \
+	for p in $(PROGRAMS) $(SCRIPTS); do \
 	  $(INSTALL_PROGRAM) "$$p" $(DESTDIR)$(bindir)/"$$p"; \
 	done
 	set -e; \
@@ -111,7 +113,7 @@ install: $(PROGRAMS) $(HEADERS) $(LIBRARIES) $(DATA)
 
 clean mostlyclean:
 	$(RM) *.[oa] $(PROGRAMS) $(SCRIPTS) $(OBJS) $(LIBRARIES) $(DATA) \
-	      $(build3dir) *~
+	      $(WINLIBRARIES) $(build3dir) *~
 .PHONY: clean mostlyclean
 
 distclean maintainer-clean: clean
@@ -172,7 +174,7 @@ d/msdos_i486.pe: $(build3dir)/msdos_i486.exe $(LFANEW)
 	$(HOSTRUN) '$(abspath $(LFANEW))' -U -o $@ $<
 
 $(build3dir)/msdos_i486.exe: 3rd-party/msdos.7z msdos.load-self.patch \
-			     $(build3dir)/msdos-opts.bin $(SCRIPTS)
+			     $(build3dir)/msdos-opts.bin $(WINLIBRARIES)
 	mkdir -p $(@D)
 	$(RM) -r $(@D)/msdos
 	7z x -o$(@D) $<
@@ -192,7 +194,7 @@ endif
 	mv $@.tmp $@
 
 $(build3dir)/msdos_i486.exe \
- : LDFLAGS_EXTRA = -T$(abspath $(SCRIPTS)) \
+ : LDFLAGS_EXTRA = $(WINLIBRARIES:%=-T $(abs_builddir)/%) \
 		   -Wl,--defsym=__base_of_code__=0x80000
 
 $(build3dir)/msdos-opts.bin:
@@ -217,3 +219,10 @@ $(abs_srcdir)/tests/testsuite: $(abs_srcdir)/tests/testsuite.at \
 					  $(abs_srcdir)/tests/*.in)
 	cd $(abs_srcdir)/tests && exec autom4te --language=autotest -o $@ $<
 .PRECIOUS: $(abs_srcdir)/tests/testsuite
+
+Makefile msdospeify tests/atlocal : %: %.in config.status
+	./config.status $@
+
+config.status: configure
+	./$@ --recheck
+.PRECIOUS: config.status

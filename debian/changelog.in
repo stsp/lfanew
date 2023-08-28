@@ -1,3 +1,9 @@
+lfanew (20230828-build20230828-1~@distro@) @distro@; urgency=medium
+
+  * Add a msdospeify script.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Mon, 28 Aug 2023 23:35:13 +0000
+
 lfanew (20230827-build20230828-1~@distro@) @distro@; urgency=medium
 
   * Install PE portion of Takeda's MS-DOS Player under $(datadir).
