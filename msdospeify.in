@@ -59,7 +59,7 @@ set $verbose --
 
 if test -f "$bindir/lfanew"; then
   lfanew="$bindir"/lfanew
-  pe="$datadir"/msdos_i486.pe
+  pe="$datadir"/lfanew/msdos_i486.pe
 else
   lfanew="$builddir"/lfanew
   pe="$builddir"/d/msdos_i486.pe

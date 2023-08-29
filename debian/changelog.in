@@ -1,3 +1,9 @@
+lfanew (20230829-build20230829-1~@distro@) @distro@; urgency=medium
+
+  * msdospeify: fix glitch.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Tue, 29 Aug 2023 18:55:40 +0000
+
 lfanew (20230828-build20230828-1~@distro@) @distro@; urgency=medium
 
   * Add a msdospeify script.
