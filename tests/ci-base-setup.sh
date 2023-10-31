@@ -67,6 +67,8 @@ case "$OS" in
     case "$AUTOCONF:$CC" in
       *chibicc*)
 	set -- chibicc "$@";;
+      *kefir*)
+	set -- kefir-compiler "$@";;
     esac
     apt-get install -y "$@";;
 esac

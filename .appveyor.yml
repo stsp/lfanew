@@ -23,24 +23,27 @@
 
 skip_tags: true
 image:
+  - Ubuntu2204
   - Visual Studio 2022
-  - Ubuntu2004
 environment:
   matrix:
+    - AUTOCONF: CC=kefir
     - AUTOCONF: CC=chibicc
     - AUTOCONF:
     # Try cross-compiling to Windows/x86-32.
     - AUTOCONF: --host=i686-w64-mingw32
 matrix:
   exclude:
-    # To my knowledge, chibicc has not been ported to Windows yet...
+    # To my knowledge, kefir & chibicc have not been ported to Windows yet...
+    - image: Visual Studio 2022
+      AUTOCONF: CC=kefir
     - image: Visual Studio 2022
       AUTOCONF: CC=chibicc
 for:
   -
     matrix:
       except:
-        - image: Ubuntu2004
+        - image: Ubuntu2204
     environment:
       OS: windows
     install:
@@ -52,7 +55,7 @@ for:
   -
     matrix:
       only:
-        - image: Ubuntu2004
+        - image: Ubuntu2204
     environment:
       OS: linux
       MAKE: make

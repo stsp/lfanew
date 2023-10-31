@@ -20,6 +20,7 @@ AC_DISABLE_OPTION_CHECKING
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 lfanew_ackhost=
+cflags_set="${CFLAGS+set}"
 case "$host_alias" in
   i386-linuxack | i386-*-linuxack)
     lfanew_ackhost=linux386 ;;
@@ -34,7 +35,7 @@ if test -n "$lfanew_ackhost"; then
 			      ack -m"$lfanew_ackhost" -.c)
     export CC
   fi
-  if test -z "$CFLAGS"; then
+  if test -z "$cflags_set"; then
     CFLAGS='-O6 -S'
     export CFLAGS
   fi
@@ -46,6 +47,8 @@ AC_LANG_WERROR
 AC_PROG_CC
 if test yes = "$GCC"; then
   CFLAGS="-Wall $CFLAGS"
+elif test -z "$cflags_set"; then
+  AC_CHECK_DECL([__KEFIRCC__],[CFLAGS='-O2'])
 fi
 AC_ARG_VAR(AR, [location of ar])
 AC_ARG_VAR(RANLIB, [location of ranlib])
