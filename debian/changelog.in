@@ -1,3 +1,11 @@
+lfanew (20231110-build20231110-1~@distro@) @distro@; urgency=medium
+
+  * lfanew.c, <nexgen/mzendian.h>: rename leh... & hle... functions to
+    _leh... & _hle... .
+  * configure.ac, AppVeyor CI: Handle Kefir compiler.
+
+ -- TK Chia <tkchia@users.noreply.github.com>  Fri, 10 Nov 2023 14:45:19 +0000
+
 lfanew (20230829-build20230829-1~@distro@) @distro@; urgency=medium
 
   * msdospeify: fix glitch.

@@ -91,7 +91,7 @@ typedef union
 #ifdef _NEXGEN_MZENDIAN_ASSUME_LE
 
 static uint_le16_t
-hle16 (uint16_t __x)
+_hle16 (uint16_t __x)
 {
   uint_lea16_t __u;
   __u.__xi = __x;
@@ -99,7 +99,7 @@ hle16 (uint16_t __x)
 }
 
 static uint_le32_t
-hle32 (uint32_t __x)
+_hle32 (uint32_t __x)
 {
   uint_lea32_t __u;
   __u.__xi = __x;
@@ -108,7 +108,7 @@ hle32 (uint32_t __x)
 
 # ifdef UINT64_MAX
 static uint_le64_t
-hle64 (uint64_t __x)
+_hle64 (uint64_t __x)
 {
   uint_lea64_t __u;
   __u.__xi = __x;
@@ -117,7 +117,7 @@ hle64 (uint64_t __x)
 # endif
 
 static uint16_t
-leh16 (uint_le16_t __x)
+_leh16 (uint_le16_t __x)
 {
   uint_lea16_t __u;
   __u.__xo = __x;
@@ -125,7 +125,7 @@ leh16 (uint_le16_t __x)
 }
 
 static uint32_t
-leh32 (uint_le32_t __x)
+_leh32 (uint_le32_t __x)
 {
   uint_lea32_t __u;
   __u.__xo = __x;
@@ -133,24 +133,24 @@ leh32 (uint_le32_t __x)
 }
 
 static uint16_t
-leh32lo (uint_le32_t __x)
+_leh32lo (uint_le32_t __x)
 {
   uint_lea32_t __u;
   __u.__xo = __x;
-  return leh16 (__u.__xw[0]);
+  return _leh16 (__u.__xw[0]);
 }
 
 static uint16_t
-leh32hi (uint_le32_t __x)
+_leh32hi (uint_le32_t __x)
 {
   uint_lea32_t __u;
   __u.__xo = __x;
-  return leh16 (__u.__xw[1]);
+  return _leh16 (__u.__xw[1]);
 }
 
 # ifdef UINT64_MAX
 static uint64_t
-leh64 (uint_le64_t __x)
+_leh64 (uint_le64_t __x)
 {
   uint_lea64_t __u;
   __u.__xo = __x;
@@ -159,25 +159,25 @@ leh64 (uint_le64_t __x)
 # endif
 
 static uint32_t
-leh64lo (uint_le64_t __x)
+_leh64lo (uint_le64_t __x)
 {
   uint_lea64_t __u;
   __u.__xo = __x;
-  return leh32 (__u.__xdw[0]);
+  return _leh32 (__u.__xdw[0]);
 }
 
 static uint32_t
-leh64hi (uint_le64_t __x)
+_leh64hi (uint_le64_t __x)
 {
   uint_lea64_t __u;
   __u.__xo = __x;
-  return leh32 (__u.__xdw[1]);
+  return _leh32 (__u.__xdw[1]);
 }
 
 #else  /* not known to be little endian */
 
 static uint_le16_t
-hle16 (uint16_t __x)
+_hle16 (uint16_t __x)
 {
   uint_le16_t __xle;
   __xle.__octet[0] = (uint8_t)  __x;
@@ -186,7 +186,7 @@ hle16 (uint16_t __x)
 }
 
 static uint_le32_t
-hle32 (uint32_t __x)
+_hle32 (uint32_t __x)
 {
   uint_le32_t __xle;
   __xle.__octet[0] = (uint8_t)  __x;
@@ -198,7 +198,7 @@ hle32 (uint32_t __x)
 
 # ifdef UINT64_MAX
 static uint_le64_t
-hle64 (uint64_t __x)
+_hle64 (uint64_t __x)
 {
   uint_le64_t __xle;
   __xle.__octet[0] = (uint8_t)  __x;
@@ -214,14 +214,14 @@ hle64 (uint64_t __x)
 # endif
 
 static uint16_t
-leh16 (uint_le16_t __x)
+_leh16 (uint_le16_t __x)
 {
   return (uint16_t) __x.__octet[1] << 8
 		  | __x.__octet[0];
 }
 
 static uint32_t
-leh32 (uint_le32_t __x)
+_leh32 (uint_le32_t __x)
 {
   return   (uint32_t) __x.__octet[3] << 24
 	 | (uint32_t) __x.__octet[2] << 16
@@ -230,14 +230,14 @@ leh32 (uint_le32_t __x)
 }
 
 static uint16_t
-leh32lo (uint_le32_t __x)
+_leh32lo (uint_le32_t __x)
 {
   return (uint16_t) __x.__octet[1] <<  8
 		  | __x.__octet[0];
 }
 
 static uint16_t
-leh32hi (uint_le32_t __x)
+_leh32hi (uint_le32_t __x)
 {
   return (uint16_t) __x.__octet[3] <<  8
 		  | __x.__octet[2];
@@ -245,7 +245,7 @@ leh32hi (uint_le32_t __x)
 
 # ifdef UINT64_MAX
 static uint64_t
-leh64 (uint_le64_t __x)
+_leh64 (uint_le64_t __x)
 {
   return   (uint64_t) __x.__octet[7] << 56
 	 | (uint64_t) __x.__octet[6] << 48
@@ -259,7 +259,7 @@ leh64 (uint_le64_t __x)
 # endif
 
 static uint32_t
-leh64lo (uint_le64_t __x)
+_leh64lo (uint_le64_t __x)
 {
   return   (uint32_t) __x.__octet[3] << 24
 	 | (uint32_t) __x.__octet[2] << 16
@@ -268,7 +268,7 @@ leh64lo (uint_le64_t __x)
 }
 
 static uint32_t
-leh64hi (uint_le64_t __x)
+_leh64hi (uint_le64_t __x)
 {
   return   (uint32_t) __x.__octet[7] << 24
 	 | (uint32_t) __x.__octet[6] << 16

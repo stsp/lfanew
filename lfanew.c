@@ -295,7 +295,7 @@ process_mz_hdr_common (int in, uint_le16_t old_magic_le,
   if (tot_sz < offsetof (mz_hdr_t, e_res))
     error ("input is not MZ file");
 
-  old_magic = leh16 (old_magic_le);
+  old_magic = _leh16 (old_magic_le);
   if (old_magic != MZ_MAGIC && old_magic != MZ_MAGIC_ALT)
     error ("input is not MZ file");
 
@@ -304,13 +304,13 @@ process_mz_hdr_common (int in, uint_le16_t old_magic_le,
   xread (in, &pmz->e_cblp,
 	 offsetof (mz_hdr_t, e_res) - offsetof (mz_hdr_t, e_cblp));
 
-  lfarlc = leh16 (pmz->e_lfarlc);
+  lfarlc = _leh16 (pmz->e_lfarlc);
   if (lfarlc < offsetof (mz_hdr_t, e_res))
     error ("malformed MZ, e_lfarlc = %#x < %#x",
 	   (ui_t) lfarlc, (ui_t) offsetof (mz_hdr_t, e_res));
 
-  cp = leh16 (pmz->e_cp);
-  cblp = leh16 (pmz->e_cblp);
+  cp = _leh16 (pmz->e_cp);
+  cblp = _leh16 (pmz->e_cblp);
   if (! cp)
     error ("malformed MZ, e_cp = 0");
   if (! cblp)
@@ -323,7 +323,7 @@ process_mz_hdr_common (int in, uint_le16_t old_magic_le,
 	      (ui_t) cblp, (ui_t) MZ_PG_SZ);
     }
 
-  cparhdr = leh16 (pmz->e_cparhdr);
+  cparhdr = _leh16 (pmz->e_cparhdr);
   hdr_end = cparhdr * (uint32_t) MZ_PARA_SZ;
   if (hdr_end > mz_sz)
     error ("MZ header overshoots MZ end, %#lx > %#lx",
@@ -350,7 +350,7 @@ process_new_magic (int in, uint_le32_t *p_new_magic_le, const char *what)
   if (unsafe)
     return;
 
-  new_magic_lo = leh32lo (*p_new_magic_le);
+  new_magic_lo = _leh32lo (*p_new_magic_le);
   switch (new_magic_lo)
     {
     default:
@@ -428,18 +428,18 @@ static void
 pe_adjust_off (uint_le32_t *p_off, uint32_t aligned_inh_size, uint32_t adjust,
 	       bool can_zero)
 {
-  uint32_t off = leh32 (*p_off);
+  uint32_t off = _leh32 (*p_off);
   if (off != 0)
     {
       if (off < aligned_inh_size)
 	{
 	  if (can_zero)
-	    *p_off = hle32 (0);
+	    *p_off = _hle32 (0);
 	  else
 	    error ("cannot adjust PE file pointer %#lx < %#lx",
 		   (ul_t) off, (ul_t) aligned_inh_size);
 	}
-      *p_off = hle32 (off + adjust);
+      *p_off = _hle32 (off + adjust);
     }
 }
 
@@ -463,8 +463,8 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   if (! xread1 (in, &fhdr, sizeof (fhdr)))
     error_with_errno ("cannot read PE COFF file header");
 
-  if (leh32 (fhdr.PointerToSymbolTable) != 0
-      || leh32 (fhdr.NumberOfSymbols) != 0)
+  if (_leh32 (fhdr.PointerToSymbolTable) != 0
+      || _leh32 (fhdr.NumberOfSymbols) != 0)
     error ("PE COFF symbol table unsupported");
 
   if (! xwrite1 (out, &fhdr, sizeof (fhdr)))
@@ -474,7 +474,7 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   out_off += sizeof (fhdr);
   sz -= sizeof (fhdr);
 
-  ophdr_size = leh16 (fhdr.SizeOfOptionalHeader);
+  ophdr_size = _leh16 (fhdr.SizeOfOptionalHeader);
   if (ophdr_size < sizeof (ophdr.h.Magic))
     error ("PE optional header too short");
   if (ophdr_size > sizeof (ophdr))
@@ -487,13 +487,13 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   if (! xread1 (in, &ophdr, ophdr_size))
     error_with_errno ("cannot read PE optional header");
 
-  file_align = leh32 (ophdr.h.FileAlignment);
+  file_align = _leh32 (ophdr.h.FileAlignment);
   if (! is_two_power (file_align))
     error ("PE FileAlignment %#lx not power of 2", (ul_t) file_align);
-  sect_align = leh32 (ophdr.h.SectionAlignment);
+  sect_align = _leh32 (ophdr.h.SectionAlignment);
   if (! is_two_power (sect_align))
     error ("PE SectionAlignment %#lx not power of 2", (ul_t) sect_align);
-  num_sects = leh16 (fhdr.NumberOfSections);
+  num_sects = _leh16 (fhdr.NumberOfSections);
 
   inh_size = (uint32_t) ophdr_size + (uint32_t) num_sects * sizeof (sect);
   if (inh_size > sz)
@@ -505,7 +505,7 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   if (aligned_inh_size < inh_size)
     error ("input PE headers are too large, %#lx + %#lx > 4 GiB",
 	   (ul_t) inh_size, (ul_t) file_align);
-  rcvd_inh_size = leh32 (ophdr.h.SizeOfHeaders);
+  rcvd_inh_size = _leh32 (ophdr.h.SizeOfHeaders);
   if (rcvd_inh_size < aligned_inh_size)
     error ("PE SizeOfHeaders is bogus, %#lx < %#lx",
 	   (ul_t) rcvd_inh_size, (ul_t) aligned_inh_size);
@@ -520,10 +520,10 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
   if (aligned_outh_size < outh_size)
     error ("output PE headers will be too large, %#lx + %#lx > 4 GiB",
 	   (ul_t) outh_size, (ul_t) file_align);
-  ophdr.h.SizeOfHeaders = hle32 (aligned_outh_size);
+  ophdr.h.SizeOfHeaders = _hle32 (aligned_outh_size);
   adjust = aligned_outh_size - aligned_inh_size;
 
-  ophdr_magic = leh16 (ophdr.h.Magic);
+  ophdr_magic = _leh16 (ophdr.h.Magic);
   switch (ophdr_magic)
     {
     default:
@@ -541,17 +541,17 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	    {
 	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
 	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust,
-			     ! leh32 (ent->Size));
+			     ! _leh32 (ent->Size));
 	      break;
 
 	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
 	      /* FIXME */
-	      if (leh32 (ent->VirtualAddress) != 0 && leh32 (ent->Size) != 0)
+	      if (_leh32 (ent->VirtualAddress) != 0 && _leh32 (ent->Size) != 0)
 		warn ("PE32 debug table unsupported; retaining anyway");
 	      /* FALLTHRU */
 
 	    default:
-	      rva = leh32 (ent->VirtualAddress);
+	      rva = _leh32 (ent->VirtualAddress);
 	      if (rva != 0 && min_used_rva > rva)
 		min_used_rva = rva;
 	    }
@@ -568,17 +568,17 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	    {
 	    case IMAGE_DIRECTORY_ENTRY_SECURITY:
 	      pe_adjust_off (&ent->VirtualAddress, aligned_inh_size, adjust,
-			     ! leh32 (ent->Size));
+			     ! _leh32 (ent->Size));
 	      break;
 
 	    case IMAGE_DIRECTORY_ENTRY_DEBUG:
 	      /* FIXME */
-	      if (leh32 (ent->VirtualAddress) != 0 && leh32 (ent->Size) != 0)
+	      if (_leh32 (ent->VirtualAddress) != 0 && _leh32 (ent->Size) != 0)
 		warn ("PE32+ debug table unsupported; retaining anyway");
 	      /* FALLTHRU */
 
 	    default:
-	      rva = leh32 (ent->VirtualAddress);
+	      rva = _leh32 (ent->VirtualAddress);
 	      if (rva != 0 && rva < min_used_rva)
 		min_used_rva = rva;
 	    }
@@ -603,8 +603,8 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
       if (! xread1 (in, &sect, sizeof (sect)))
 	error_with_errno ("cannot read PE section header #%#x", (ui_t) i);
 
-      rva = leh32 (sect.VirtualAddress);
-      props = leh32 (sect.Characteristics);
+      rva = _leh32 (sect.VirtualAddress);
+      props = _leh32 (sect.Characteristics);
       if (rva == 0)
 	{
 	  if ((props & (IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ
@@ -612,7 +612,7 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	    warn ("section #%#x has suspicious RVA of 0", (ui_t) i);
 	}
       else if (i == 1
-	       && leh32 (sect.SizeOfRawData) == 0
+	       && _leh32 (sect.SizeOfRawData) == 0
 	       && (props & (IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA
 			    | IMAGE_SCN_CNT_UNINITIALIZED_DATA))
 		  == IMAGE_SCN_CNT_UNINITIALIZED_DATA)
@@ -625,7 +625,7 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	   */
 	  uint32_t sect_aligned_outh_size
 	    = round_up_to_two_power (outh_size, sect_align);
-	  uint32_t end_rva = rva + leh32 (sect.VirtualSize);
+	  uint32_t end_rva = rva + _leh32 (sect.VirtualSize);
 	  if (! sect_aligned_outh_size)
 	    error ("not enough RVA space for slack section, PE headers "
 		   "are almost 4 GiB");
@@ -633,18 +633,18 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
 	    error ("not enough RVA space for slack section, %#lx < %#lx",
 		   (ul_t) end_rva, (ul_t) sect_aligned_outh_size);
 	  rva = sect_aligned_outh_size;
-	  sect.VirtualAddress = hle32 (rva);
-	  sect.VirtualSize = hle32 (end_rva - rva);
+	  sect.VirtualAddress = _hle32 (rva);
+	  sect.VirtualSize = _hle32 (end_rva - rva);
 	}
       else if (rva < min_used_rva)
 	min_used_rva = rva;
 
       pe_adjust_off (&sect.PointerToRawData, aligned_inh_size, adjust,
-		     ! leh32 (sect.SizeOfRawData));
+		     ! _leh32 (sect.SizeOfRawData));
       pe_adjust_off (&sect.PointerToRelocations, aligned_inh_size, adjust,
-		     ! leh16 (sect.NumberOfRelocations));
+		     ! _leh16 (sect.NumberOfRelocations));
       pe_adjust_off (&sect.PointerToLinenumbers, aligned_inh_size, adjust,
-		     ! leh16 (sect.NumberOfLinenumbers));
+		     ! _leh16 (sect.NumberOfLinenumbers));
 
       if (! xwrite1 (out, &sect, sizeof (sect)))
 	error_with_errno ("cannot write PE section header #%#x", (ui_t) i);
@@ -666,13 +666,13 @@ copy_pe (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off)
     error ("not enough RVA space for output PE headers, %#lx < %#lx",
 	   (ul_t) min_used_rva, (ul_t) aligned_outh_size);
 
-  rva = leh32 (ophdr.h.BaseOfCode);
+  rva = _leh32 (ophdr.h.BaseOfCode);
   if (rva < min_used_rva)
     warn ("PE BaseOfCode == %#lx < %#lx looks bogus",
 	  (ul_t) rva, (ul_t) min_used_rva);
   if (! pe32plus)
     {
-      rva = leh32 (ophdr.h32.BaseOfData);
+      rva = _leh32 (ophdr.h32.BaseOfData);
       if (rva < min_used_rva)
 	warn ("PE32 BaseOfData == %#lx < %#lx looks bogus",
 	      (ul_t) rva, (ul_t) min_used_rva);
@@ -701,7 +701,7 @@ static void
 copy_new (int in, int out, ul_t sz, uint32_t in_off, uint32_t out_off,
 	  uint_le32_t new_magic_le)
 {
-  switch (leh32 (new_magic_le))
+  switch (_leh32 (new_magic_le))
     {
     default:
       copy (in, out, sz, in_off, out_off);
@@ -731,15 +731,15 @@ lfanew (void)
 	   tot_sz, (ui_t) MZ_PARA_SZ);
   aligned_tot_sz = round_up_to_two_power (tot_sz, MZ_PARA_SZ);
 
-  lfarlc = leh16 (mz.e_lfarlc);
+  lfarlc = _leh16 (mz.e_lfarlc);
   if (lfarlc >= MZ_LFARLC_NEW - sizeof (uint32_t))
     error ("cannot rewrite MZ, e_lfarlc = %#x >= %#x",
 	   (ui_t) lfarlc, (ui_t) (MZ_LFARLC_NEW - sizeof (uint32_t)));
 
-  cparhdr = leh16 (mz.e_cparhdr);
+  cparhdr = _leh16 (mz.e_cparhdr);
   hdr_end = cparhdr * (uint32_t) MZ_PARA_SZ;
 
-  crlc = leh16 (mz.e_crlc);
+  crlc = _leh16 (mz.e_crlc);
   rels_sz = (uint32_t) crlc * MZ_RELOC_SZ;
   rels_end = lfarlc + (uint32_t) crlc * MZ_RELOC_SZ;
   if (rels_end > hdr_end)
@@ -772,11 +772,11 @@ lfanew (void)
     error ("output MZ stub will be too large, %#lx > %#lx",
 	   (ul_t) mz_sz, (ul_t) 0xffff * MZ_PG_SZ);
 
-  mz.e_cblp = hle16 (new_mz_sz % MZ_PG_SZ);
-  mz.e_cp = hle16 ((new_mz_sz + MZ_PG_SZ - 1) / MZ_PG_SZ);
-  mz.e_cparhdr = hle16 (new_hdr_end / MZ_PARA_SZ);
-  mz.e_lfarlc = hle16 (MZ_LFARLC_NEW);
-  mz.e_lfanew = hle32 (new_tot_sz);
+  mz.e_cblp = _hle16 (new_mz_sz % MZ_PG_SZ);
+  mz.e_cp = _hle16 ((new_mz_sz + MZ_PG_SZ - 1) / MZ_PG_SZ);
+  mz.e_cparhdr = _hle16 (new_hdr_end / MZ_PARA_SZ);
+  mz.e_lfarlc = _hle16 (MZ_LFARLC_NEW);
+  mz.e_lfanew = _hle32 (new_tot_sz);
 
   out = open_out (out_path);
   xwrite (out, &mz, sizeof (mz));
@@ -810,7 +810,7 @@ stubify (void)
   process_old_magic (in2, &old_magic_le);
   process_mz_hdr_common (in2, old_magic_le, &mz2, &tot2_sz, &mz2_sz);
 
-  lfarlc = leh16 (mz2.e_lfarlc);
+  lfarlc = _leh16 (mz2.e_lfarlc);
   stub_sz = mz2_sz;
   if (lfarlc == MZ_LFARLC_NEW)
     {
@@ -818,7 +818,7 @@ stubify (void)
       if (oem != 0)
 	{
 	  xread (in2, &mz2.e_res, oem);
-	  lfanew = leh32 (mz2.e_lfanew);
+	  lfanew = _leh32 (mz2.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot2_sz)
 	    {
 	      if (! force_cp_cblp)
@@ -867,7 +867,7 @@ unstubify (void)
   process_old_magic (in1, &old_magic_le);
   process_mz_hdr_common (in1, old_magic_le, &mz, &tot_sz, &mz_sz);
 
-  lfarlc = leh16 (mz.e_lfarlc);
+  lfarlc = _leh16 (mz.e_lfarlc);
   stub_sz = mz_sz;
   if (lfarlc == MZ_LFARLC_NEW)
     {
@@ -875,7 +875,7 @@ unstubify (void)
       if (oem != 0)
 	{
 	  xread (in1, &mz.e_res, oem);
-	  lfanew = leh32 (mz.e_lfanew);
+	  lfanew = _leh32 (mz.e_lfanew);
 	  if (lfanew != 0 && lfanew <= tot_sz && ! force_cp_cblp)
 	    stub_sz = lfanew;
 	}

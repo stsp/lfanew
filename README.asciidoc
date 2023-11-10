@@ -104,14 +104,14 @@ Options:
 			* Upon an error, this function returns -1 and sets ``errno``.
 4+|
 2+|            2+<| **``▗▚▚▚▚ <nexgen/mzendian.h> ▞▞▞▞▖``**
-|      X |      = | ``uint_le16_t hle16 (uint16_t``{nbsp}__x__``);`` .3+| Converts __x__ from host byte order to little endian.
-|      X |      = | ``uint_le32_t hle32 (uint32_t``{nbsp}__x__``);``
-|      X |     64 | ``uint_le64_t hle64 (uint64_t``{nbsp}__x__``);``
-|      X |      = | ``uint16_t leh16 (uint_le16_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order.
-|      X |      = | ``uint32_t leh32 (uint_le32_t``{nbsp}__x__``);``
-|      X |      = | ``uint16_t leh32hi (uint_le32_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 16-bit half respectively.
-|      X |      = | ``uint16_t leh32lo (uint_le32_t``{nbsp}__x__``);``
-|      X |     64 | ``uint64_t leh64 (uint_le64_t``{nbsp}__x__``);`` | Converts __x__ from little endian to host byte order.
-|      X |      = | ``uint32_t leh64hi (uint_le64_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 32-bit half respectively.
-|      X |      = | ``uint32_t leh64lo (uint_le64_t``{nbsp}__x__``);``
+|      X |      = | ``uint_le16_t _hle16 (uint16_t``{nbsp}__x__``);`` .3+| Converts __x__ from host byte order to little endian.
+|      X |      = | ``uint_le32_t _hle32 (uint32_t``{nbsp}__x__``);``
+|      X |     64 | ``uint_le64_t _hle64 (uint64_t``{nbsp}__x__``);``
+|      X |      = | ``uint16_t _leh16 (uint_le16_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order.
+|      X |      = | ``uint32_t _leh32 (uint_le32_t``{nbsp}__x__``);``
+|      X |      = | ``uint16_t _leh32hi (uint_le32_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 16-bit half respectively.
+|      X |      = | ``uint16_t _leh32lo (uint_le32_t``{nbsp}__x__``);``
+|      X |     64 | ``uint64_t _leh64 (uint_le64_t``{nbsp}__x__``);`` | Converts __x__ from little endian to host byte order.
+|      X |      = | ``uint32_t _leh64hi (uint_le64_t``{nbsp}__x__``);`` .2+| Converts __x__ from little endian to host byte order, and returns the high or low 32-bit half respectively.
+|      X |      = | ``uint32_t _leh64lo (uint_le64_t``{nbsp}__x__``);``
 |===
