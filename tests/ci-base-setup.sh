@@ -66,7 +66,7 @@ case "$OS" in
 	   g++-mingw-w64-i686 p7zip-full upx-ucl llvm-14
     case "$AUTOCONF:$CC" in
       *chibicc*)
-	set -- chibicc "$@";;
+	set -- chibicc-static "$@";;
       *kefir*)
 	set -- kefir-compiler "$@";;
     esac
