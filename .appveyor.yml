@@ -1,4 +1,4 @@
-# Copyright (c) 2023 TK Chia
+# Copyright (c) 2023--2024 TK Chia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -29,16 +29,20 @@ environment:
   matrix:
     - AUTOCONF: CC=kefir
     - AUTOCONF: CC=chibicc
+    - AUTOCONF: CC=cproc
     - AUTOCONF:
     # Try cross-compiling to Windows/x86-32.
     - AUTOCONF: --host=i686-w64-mingw32
 matrix:
   exclude:
-    # To my knowledge, kefir & chibicc have not been ported to Windows yet...
+    # To my knowledge, these small compilrs have not been ported to Windows
+    # yet...
     - image: Visual Studio 2022
       AUTOCONF: CC=kefir
     - image: Visual Studio 2022
       AUTOCONF: CC=chibicc
+    - image: Visual Studio 2022
+      AUTOCONF: CC=cproc
 for:
   -
     matrix:

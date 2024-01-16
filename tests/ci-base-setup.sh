@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2018--2023 TK Chia
+# Copyright (c) 2018--2024 TK Chia
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -66,7 +66,9 @@ case "$OS" in
 	   g++-mingw-w64-i686 p7zip-full upx-ucl llvm-14
     case "$AUTOCONF:$CC" in
       *chibicc*)
-	set -- chibicc "$@";;
+	set -- chibicc-static "$@";;
+      *cproc*)
+	set -- cproc "$@";;
       *kefir*)
 	set -- kefir-compiler "$@";;
     esac
