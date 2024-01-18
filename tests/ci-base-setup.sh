@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2018--2023 TK Chia
+# Copyright (c) 2018--2024 TK Chia
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -69,6 +69,12 @@ case "$OS" in
 	set -- chibicc-static "$@";;
       *kefir*)
 	set -- kefir-compiler "$@";;
+      *musl-cproc*)
+	set -- musl-cproc "$@";;
+      *cproc*)
+	set -- cproc "$@";;
+      *tcc*)
+	set -- tcc "$@";;
     esac
     apt-get install -y "$@";;
 esac

@@ -1,4 +1,4 @@
-# Copyright (c) 2023 TK Chia
+# Copyright (c) 2023--2024 TK Chia
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,9 @@ image:
   - Visual Studio 2022
 environment:
   matrix:
+    - AUTOCONF: CC=musl-cproc
+    - AUTOCONF: CC=cproc
+    - AUTOCONF: CC=tcc
     - AUTOCONF: CC=kefir
     - AUTOCONF: CC=chibicc
     - AUTOCONF:
@@ -34,7 +37,14 @@ environment:
     - AUTOCONF: --host=i686-w64-mingw32
 matrix:
   exclude:
-    # To my knowledge, kefir & chibicc have not been ported to Windows yet...
+    # To my knowledge, the smaller C compilers have not been ported to
+    # Windows yet...
+    - image: Visual Studio 2022
+      AUTOCONF: CC=musl-cproc
+    - image: Visual Studio 2022
+      AUTOCONF: CC=cproc
+    - image: Visual Studio 2022
+      AUTOCONF: CC=tcc
     - image: Visual Studio 2022
       AUTOCONF: CC=kefir
     - image: Visual Studio 2022
