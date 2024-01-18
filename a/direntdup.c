@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 TK Chia
+ * Copyright (c) 2023--2024 TK Chia
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@
 #ifdef __MINGW32__
 # define _POSIX_
 #endif
+#include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
