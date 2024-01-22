@@ -1,4 +1,4 @@
-# Copyright (c) 2023 TK Chia
+# Copyright (c) 2023--2024 TK Chia
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -57,8 +57,14 @@ HEADERS = h/lfanew/dirent.h \
 	  h/nexgen/mzendian.h \
 	  h/nexgen/mzhdr.h
 LIBOBJS = a/direntdup.$(OBJEXT)
-SCRIPTS = msdospeify
-DATA = d/msdos_i486.pe
+SCRIPTS =
+DATA =
+ifneq "/bin/false" "$(WINCC)"
+  ifneq "/bin/false" "$(WINCXX)"
+    SCRIPTS += msdospeify
+    DATA += d/msdos_i486.pe
+  endif
+endif
 WINLIBRARIES =
 ifeq "no" "@ac_cv_func_scandir@"
   LIBOBJS += a/scandir.$(OBJEXT)
