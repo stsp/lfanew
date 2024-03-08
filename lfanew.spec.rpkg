@@ -1,0 +1,50 @@
+Name: {{{ git_dir_name }}}
+Version: {{{ git_dir_version }}}
+Release: 1%{?dist}
+Summary: manipulate fat binary programs wrapped inside MS-DOS `MZ` files
+
+Group: Development/Tools
+
+License: MPL 2.0
+URL: https://gitlab.com/tkchia/lfanew.git
+VCS: {{{ git_dir_vcs }}}
+Source0: {{{ git_dir_archive }}}
+
+BuildRequires: gcc
+BuildRequires: make
+BuildRequires: binutils
+
+%description
+lfanew comprises
+a tool to manipulate fat binary programs wrapped inside MS-DOS `MZ` files
+
+%prep
+{{{ git_dir_setup_macro }}}
+
+%build
+%configure
+make %{?_smp_mflags}
+
+%check
+
+%install
+make DESTDIR=%{buildroot} install
+
+%files
+%defattr(-,root,root)
+%{_bindir}/lfanew
+
+%package devel
+Summary: lfanew development headers
+Requires: lfanew
+%description devel
+This package contains headers for lfanew usage.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/lfanew
+%{_includedir}/nexgen
+%{_libdir}/libfanew.a
+
+%changelog
+{{{ git_dir_changelog }}}
